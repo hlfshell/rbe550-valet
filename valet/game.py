@@ -76,10 +76,10 @@ class Game:
         return position, orientation
 
     def set_vehicle_spawn(self):
-        # position, orientation = self.user_input_state()
+        position, orientation = self.user_input_state()
         # position! (178, 300) -0.5070290609147747
-        position = (178, 300)
-        orientation = -0.507
+        # position = (178, 300)
+        # orientation = -0.507
     
         print("position!", position, orientation)
         # state = SkidDriveState((position), orientation)
@@ -88,15 +88,16 @@ class Game:
         self.on_render()
 
     def set_goal(self):
-        # position, orientation = self.user_input_state()
+        position, orientation = self.user_input_state()
         # position! (485, 305) -0.8951737102110684
         # position = (485, 305)
         # orientation = -0.895
         # print("goal position!", position, orientation)
         # state = SkidDriveState((position), orientation)
         # state = self.state
-        self._goal = self._vehicle.state.delta(3.5, 0, 0)
-        # self._goal = SkidDrive(position, orientation).state
+        # self._goal = self._vehicle.state.delta(3.5, 0, 0)
+        # self._goal = self._vehicle.state.delta(3.5, 1, 0)
+        self._goal = SkidDrive(position, orientation).state
         print("goal set", self._goal)
         self.on_render()
 
@@ -110,6 +111,7 @@ class Game:
         planner = StateLattice(
             self._vehicle.state,
             self._goal,
+            self._display_surface,
             heuristic_cost_function=self.hueristic
         )
         path = planner.search()
@@ -119,13 +121,14 @@ class Game:
             self._vehicle.state = state
             self.on_render()
             pygame.display.update()
-            sleep(0.01)
+            sleep(0.1)
         return
     
     def hueristic(self, target):
         distance = math.sqrt((target.x-self._goal.x)**2 + (target.y-self._goal.y)**2)
-        # theta_penalty = (self.theta-to.theta)**2
-        return distance
+        theta_difference = self._goal.theta-target.theta
+        theta_penalty = (theta_difference % (2*math.pi)) ** 2
+        return distance + theta_penalty
 
     def next_state(self):
         print(">>", self._vehicle.state)

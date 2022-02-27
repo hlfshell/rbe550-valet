@@ -1,6 +1,8 @@
 from math import sqrt
 from typing import Callable, Dict, List, Optional
 from uuid import UUID
+
+import pygame
 from valet.states import State
 from valet.queues import AStar
 
@@ -11,8 +13,10 @@ class StateLattice():
         self,
         initial_state: State,
         goal_state: State,
+        display,
         heuristic_cost_function: Optional[Callable] = None
     ):
+        self.display = display
         self.start = initial_state
         self.goal = goal_state
         self.queue = AStar()
@@ -62,28 +66,32 @@ class StateLattice():
         # If our current state is our goal state, we've hit our
         # goal, we're done! Let's build the path...
         if self.goal == current:
-            print("path found")
-            path: List[State] = [current]
-            while True:
-                current : State = self.parents[current]
-                path.insert(0, current)
-                if self.start == current:
-                    return path
             # print("path found")
             # path: List[State] = [current]
-            # while current.parent is not None:
-            #     current = self.states[current.parent]
+            # while True:
+            #     current : State = self.parents[current]
             #     path.insert(0, current)
-            # return path
+            #     if self.start == current:
+            #         return path
+            print("path found")
+            path: List[State] = [current]
+            while current.parent is not None:
+                current = self.states[current.parent]
+                path.insert(0, current)
+            return path
         
         if self.start == current:
             current_cost = 0
         else:
-            parent = self.parents[current]
+            current_cost = self.costs[current]
+            # parent = self.parents[current]
             # parent = self.states[current.parent]
             # current_cost = parent.transition_cost(current)
-            current_cost = sqrt((self.start.x - current.x)**2 + (self.start.y - current.y)**2)
-            self.costs[current] = current_cost
+            # current_cost = 0
+            # next_state = parent
+            # while next.parent is not None:
+            #     current_cost += 
+            # self.costs[current] = current_cost
         
         # Get each neighbor for the current State and queue
         # them. First, we get a list of potential neighbors
@@ -100,6 +108,7 @@ class StateLattice():
         for neighbor in neighbors:
             if neighbor not in self.parents:
                 self.parents[neighbor] = current
+                self.states[neighbor.id] = neighbor
                 heuristic_cost = 0
                 if self.heuristic_cost_function is not None:
                     heuristic_cost = self.heuristic_cost_function(neighbor)
@@ -110,8 +119,16 @@ class StateLattice():
                 self.costs[neighbor] = neighbor_cost
 
                 total_cost = neighbor_cost + heuristic_cost
+                # total_cost = heuristic_cost
 
                 self.queue.push(neighbor, total_cost)
+                # pygame.draw.line(self.display, (0, 0, 0), (neighbor.x, neighbor.y), (neighbor.x, neighbor.y))
+                pos = (neighbor.x, neighbor.y)
+                pos = (pos[0]*100, pos[1]*100)
+                self.display.fill((0, 0, 0), (pos, (1, 1)))
+
+        
+        pygame.display.update()
             # self.states[neighbor.id] = neighbor
             # heuristic_cost = 0
             # if self.heuristic_cost_function is not None:

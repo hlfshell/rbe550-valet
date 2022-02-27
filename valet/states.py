@@ -34,12 +34,12 @@ class SkidDriveState(State):
         super().__init__()
         self.x = xy[0]
         self.y = xy[1]
-        self.theta = theta % (2*pi)
-        # self.theta = theta
+        self.theta = theta
         x, y, theta = self.get_rounded()
         self.x = x
         self.y = y
         self.theta = theta
+        self.theta = theta % (2*pi)
         self.id = uuid4()
         self.parent = parent
     
@@ -48,18 +48,18 @@ class SkidDriveState(State):
 
     def get_neighbors(self) -> List[State]:
         neighbors = []
-        time_delta = 0.01
+        time_delta = 0.1
 
         uruls = []
         increment = 10
         urul_max = 20.0
         for urd in arange(-0.5*urul_max, urul_max+increment, increment):
             for url in arange(-0.5*urul_max, urul_max+increment, increment):
-                if url < 0 and urd > 0:
-                    continue
-                elif url > 0 and urd < 0:
-                    continue
-                elif url == 0 and urd == 0:
+                # if url < 0 and urd > 0:
+                #     continue
+                # elif url > 0 and urd < 0:
+                #     continue
+                if url == 0 and urd == 0:
                     continue
                 uruls.append((urd, url))
 
@@ -75,12 +75,10 @@ class SkidDriveState(State):
 
             xdot = (r/2)*(ur+ul)*cos(theta)
             ydot = (r/2)*(ur+ul)*sin(theta)
-            
-            
             xdelta = xdot * time_delta
             ydelta = ydot * time_delta
+
             state = self.delta(xdelta, ydelta, thetadelta)
-            state.parent = self.id
             neighbors.append(state)
         return neighbors
 
@@ -88,10 +86,11 @@ class SkidDriveState(State):
         x = self.x + deltax
         y = self.y + deltay
         theta = self.theta + deltatheta
-        return SkidDriveState((x, y), theta)
+        return SkidDriveState((x, y), theta, parent=self.id)
     
     def transition_cost(self, to: SkidDriveState) -> float:
         theta_penalty = (self.theta-to.theta)**2
+        theta_penalty = 0
         return sqrt((self.x-to.x)**2 + (self.y-to.y)**2)+theta_penalty
     
     def get_rounded(self) -> Tuple[float, float, float]:
