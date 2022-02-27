@@ -1,5 +1,5 @@
 from queue import PriorityQueue
-from states import State
+from valet.states import State
 
 class AStar():
 
@@ -10,7 +10,7 @@ class AStar():
         self.queue.put((cost, state))
 
     def pop(self) -> State:
-        self.queue.get()[1]
+        return self.queue.get()[1]
 
     def __len__(self):
         return len(self.queue.queue)

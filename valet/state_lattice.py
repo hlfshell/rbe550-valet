@@ -1,6 +1,8 @@
+from math import sqrt
 from typing import Callable, Dict, List, Optional
-from states import State
-from queues import AStar
+from uuid import UUID
+from valet.states import State
+from valet.queues import AStar
 
 
 class StateLattice():
@@ -18,6 +20,7 @@ class StateLattice():
         # The parents dict tracks how we reach a given state
         # so that we can rebuild a path during path planning
         self.parents: Dict[State, State] = {}
+        self.states: Dict[UUID, State] = {}
         # costs is a dict that tracks the cost to reach a
         # given state
         self.costs : Dict[State, float] = {}
@@ -30,16 +33,24 @@ class StateLattice():
         self.heuristic_cost_function = heuristic_cost_function
 
     def search(self) -> List[State]:
+        print("seraching")
         path: Optional[List[State]] = None
         self.queue.push(self.start)
+        self.states[self.start.id] = self.start
 
         while path == None:
             path = self.step()
-        
+        print("done", path)
         return path
     
     def step(self) -> Optional[List[State]]:
         self.steps_taken += 1
+        if self.steps_taken == 50_000:
+            print("step", self.steps_taken)
+            g = self.goal
+            n = self.queue.pop()
+            print(g, n, sqrt((g.x-n.x)**2+(g.y-n.y)**2))
+            raise "done"
 
         # If the queue is empty, game over - no path exists!
         if len(self.queue) == 0:
@@ -51,18 +62,27 @@ class StateLattice():
         # If our current state is our goal state, we've hit our
         # goal, we're done! Let's build the path...
         if self.goal == current:
+            print("path found")
             path: List[State] = [current]
             while True:
-                next : State = self.parents[current]
-                path.append(next)
-                if self.start == next:
+                current : State = self.parents[current]
+                path.insert(0, current)
+                if self.start == current:
                     return path
+            # print("path found")
+            # path: List[State] = [current]
+            # while current.parent is not None:
+            #     current = self.states[current.parent]
+            #     path.insert(0, current)
+            # return path
         
         if self.start == current:
             current_cost = 0
         else:
             parent = self.parents[current]
-            current_cost = parent.transition_cost(current)
+            # parent = self.states[current.parent]
+            # current_cost = parent.transition_cost(current)
+            current_cost = sqrt((self.start.x - current.x)**2 + (self.start.y - current.y)**2)
             self.costs[current] = current_cost
         
         # Get each neighbor for the current State and queue
@@ -92,3 +112,17 @@ class StateLattice():
                 total_cost = neighbor_cost + heuristic_cost
 
                 self.queue.push(neighbor, total_cost)
+            # self.states[neighbor.id] = neighbor
+            # heuristic_cost = 0
+            # if self.heuristic_cost_function is not None:
+            #     heuristic_cost = self.heuristic_cost_function(neighbor)
+            
+            # # transition_cost = current.transition_cost(neighbor)
+            # transition_cost = sqrt((self.start.x - current.x)**2 + (self.start.y - current.y)**2)
+
+            # neighbor_cost = current_cost + transition_cost
+            # self.costs[neighbor] = neighbor_cost
+
+            # total_cost = neighbor_cost + heuristic_cost
+
+            # self.queue.push(neighbor, total_cost)
