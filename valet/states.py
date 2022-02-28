@@ -46,20 +46,22 @@ class SkidDriveState(State):
     def is_possible(self) -> bool:
         return True
 
-    def get_neighbors(self) -> List[State]:
+    def get_neighbors(self, close = False) -> List[State]:
         neighbors = []
         time_delta = 0.1
 
         uruls = []
-        increment = 10
+        increment = 0.5
+        # if close:
+        #     increment = 0.1
         urul_max = 20.0
         for urd in arange(-0.5*urul_max, urul_max+increment, increment):
             for url in arange(-0.5*urul_max, urul_max+increment, increment):
-                # if url < 0 and urd > 0:
-                #     continue
-                # elif url > 0 and urd < 0:
-                #     continue
-                if url == 0 and urd == 0:
+                if url < 0 and urd > 0:
+                    continue
+                elif url > 0 and urd < 0:
+                    continue
+                elif url == 0 and urd == 0:
                     continue
                 uruls.append((urd, url))
 
@@ -89,9 +91,14 @@ class SkidDriveState(State):
         return SkidDriveState((x, y), theta, parent=self.id)
     
     def transition_cost(self, to: SkidDriveState) -> float:
-        theta_penalty = (self.theta-to.theta)**2
-        theta_penalty = 0
-        return sqrt((self.x-to.x)**2 + (self.y-to.y)**2)+theta_penalty
+        theta_difference = abs(self.theta - to.theta) % (2*pi)
+        if theta_difference > pi:
+            theta_difference = (2*pi) - theta_difference
+        theta_penalty = 0 * theta_difference
+        # theta_penalty = 0.5 * ((self.theta-to.theta)%(2*pi))**2
+        distance_penalty = sqrt((self.x-to.x)**2 + (self.y-to.y)**2)
+        # theta_penalty = 0
+        return distance_penalty + theta_penalty
     
     def get_rounded(self) -> Tuple[float, float, float]:
         x = round(self.x, 2)
@@ -102,10 +109,13 @@ class SkidDriveState(State):
     def __eq__(self, other: State) -> bool:
         if other is None:
             return False
+        # return self.x == other.x and self.y == other.y and self.theta == other.theta
         distance = sqrt((self.x-other.x)**2+(self.y-other.y)**2)
-        theta_difference = abs(self.theta - other.theta)
+        theta_difference = abs(self.theta - other.theta) % (2*pi)
+        if theta_difference > pi:
+            theta_difference = (2*pi) - theta_difference
         # return distance < 0.1
-        return distance < 0.1 and theta_difference < 0.01
+        return distance < 0.05 and theta_difference < 0.05
         return round(self.x,2) == round(other.x, 2) and \
                 round(self.y, 2) == round(other.y, 2)
                 # round(self.y, 2) == round(other.y, 2) and \

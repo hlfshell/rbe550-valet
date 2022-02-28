@@ -73,7 +73,7 @@ class Game:
                 elif mousebuttondown and right and position is not None:
                     position = None
         self.on_render()
-        return position, orientation
+        return position, -1*orientation
 
     def set_vehicle_spawn(self):
         position, orientation = self.user_input_state()
@@ -82,7 +82,6 @@ class Game:
         # orientation = -0.507
     
         print("position!", position, orientation)
-        # state = SkidDriveState((position), orientation)
         self._vehicle = SkidDrive(position, orientation)
         print("start set", self._vehicle.state)
         self.on_render()
@@ -128,7 +127,8 @@ class Game:
         distance = math.sqrt((target.x-self._goal.x)**2 + (target.y-self._goal.y)**2)
         theta_difference = self._goal.theta-target.theta
         theta_penalty = (theta_difference % (2*math.pi)) ** 2
-        return distance + theta_penalty
+        theta_penalty = 0
+        return 2*(distance + theta_penalty)
 
     def next_state(self):
         print(">>", self._vehicle.state)
