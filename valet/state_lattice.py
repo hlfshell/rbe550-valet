@@ -65,6 +65,12 @@ class StateLattice():
         # Get the next candidate from our current state
         current = self.queue.pop()
 
+        # Short hop check
+        if current.can_i_transition_to(self.goal):
+            print("transition hop hit")
+            self.parents[self.goal] = current
+            current = self.goal
+
         # If our current state is our goal state, we've hit our
         # goal, we're done! Let's build the path...
         if self.goal == current:
@@ -120,13 +126,15 @@ class StateLattice():
                 self.parents[neighbor] = current
                 self.states[neighbor.id] = neighbor
                 heuristic_cost = 0
-                if self.heuristic_cost_function is not None:
-                    heuristic_cost = self.heuristic_cost_function(neighbor)
-                # heuristic_cost = 0
-                # next_state = neighbor
-                # while next_state.parent is not None:
-                #     heuristic_cost += 1
-                #     next_state = self.states[next_state.parent]
+                # if self.heuristic_cost_function is not None:
+                #     heuristic_cost = self.heuristic_cost_function(neighbor)
+                distance = neighbor.distance_between(self.goal)
+                heuristic_cost = 2* distance
+                # if distance < 0.5:
+                #     theta_difference = self.goal.theta-neighbor.theta
+                #     theta_penalty = (theta_difference % (2*math.pi)) ** 2
+                #     theta_penalty *= 5
+                #     heuristic_cost += theta_penalty
                 
                 transition_cost = current.transition_cost(neighbor)
 

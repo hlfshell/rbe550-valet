@@ -84,6 +84,36 @@ class SkidDriveState(State):
             neighbors.append(state)
         return neighbors
 
+    def can_i_transition_to(self, other : SkidDriveState) -> bool:
+        # First, is it within a distance to even be possible?
+        time_increment = 0.1
+        max_distance = 2 * time_increment # 2m/s
+        
+        if self.distance_between(other) > max_distance:
+            return False
+
+        # Now that we know it's possible, calculate the UL/UR needed
+        # to get to that spot. If they are within our acceptable range
+        # (IE -10 to -20 per second) then we're set!
+        xdelta = other.x - self.x
+        ydelta = other.y - self.y
+        thetadelta = other.theta - self.theta
+
+        xdot = xdelta / time_increment
+        ydot = ydelta / time_increment
+        thetadot = thetadelta / time_increment
+
+        r = .1 # .2 diameter
+        L = 0.4
+
+        Ul = ((2*xdot)/(r*cos(other.theta))) - ((thetadot * L)/r)
+        Ur = ((thetadot*L)/r) + Ul
+        
+        if Ul >= -10 and Ul <= 20 and Ur >= -10 and Ur <= 20:
+            return True
+        else:
+            return False
+
     def delta(self, deltax: float, deltay: float, deltatheta: float) -> SkidDriveState:
         x = self.x + deltax
         y = self.y + deltay
@@ -100,6 +130,9 @@ class SkidDriveState(State):
         # theta_penalty = 0
         return distance_penalty + theta_penalty
     
+    def distance_between(self, other : SkidDriveState) -> float:
+        return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
+
     def get_rounded(self) -> Tuple[float, float, float]:
         x = round(self.x, 2)
         y = round(self.y, 2)
