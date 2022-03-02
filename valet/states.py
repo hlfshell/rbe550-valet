@@ -10,10 +10,6 @@ class State(ABC):
 
     def __init__(self):
         super().__init__()
-    
-    @abstractmethod
-    def is_possible(self) -> bool:
-        pass
 
     @abstractmethod
     def get_neighbors(self) -> List[State]:
@@ -24,7 +20,27 @@ class State(ABC):
         pass
 
     @abstractmethod
+    def connects(self, other : State) -> bool:
+        pass
+
+    @abstractmethod
+    def distance_between(self, other : SkidDriveState) -> float:
+        pass
+
+    @abstractmethod
     def __eq__(self, other: State) -> bool:
+        pass
+
+    @abstractmethod
+    def __hash__(self) -> int:
+        pass
+    
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
+
+    @abstractmethod
+    def __lt__(self) -> str:
         pass
 
 
@@ -42,18 +58,13 @@ class SkidDriveState(State):
         self.theta = theta % (2*pi)
         self.id = uuid4()
         self.parent = parent
-    
-    def is_possible(self) -> bool:
-        return True
 
-    def get_neighbors(self, close = False) -> List[State]:
+    def get_neighbors(self, close = False, time_increment=0.1) -> List[State]:
         neighbors = []
-        time_delta = 0.1
 
         uruls = []
         increment = 0.5
-        # if close:
-        #     increment = 0.1
+
         urul_max = 20.0
         for urd in arange(-0.5*urul_max, urul_max+increment, increment):
             for url in arange(-0.5*urul_max, urul_max+increment, increment):
@@ -72,21 +83,20 @@ class SkidDriveState(State):
             ur = urul[0]
             ul = urul[1]
             thetadot = (r/L) * (ur-ul)
-            thetadelta = thetadot * time_delta
+            thetadelta = thetadot * time_increment
             theta = self.theta + thetadelta
 
             xdot = (r/2)*(ur+ul)*cos(theta)
             ydot = (r/2)*(ur+ul)*sin(theta)
-            xdelta = xdot * time_delta
-            ydelta = ydot * time_delta
+            xdelta = xdot * time_increment
+            ydelta = ydot * time_increment
 
             state = self.delta(xdelta, ydelta, thetadelta)
             neighbors.append(state)
         return neighbors
 
-    def can_i_transition_to(self, other : SkidDriveState) -> bool:
+    def connects(self, other : SkidDriveState, time_increment=0.1) -> bool:
         # First, is it within a distance to even be possible?
-        time_increment = 0.1
         max_distance = 2 * time_increment # 2m/s
         
         if self.distance_between(other) > max_distance:
@@ -96,11 +106,9 @@ class SkidDriveState(State):
         # to get to that spot. If they are within our acceptable range
         # (IE -10 to -20 per second) then we're set!
         xdelta = other.x - self.x
-        ydelta = other.y - self.y
         thetadelta = other.theta - self.theta
 
         xdot = xdelta / time_increment
-        ydot = ydelta / time_increment
         thetadot = thetadelta / time_increment
 
         r = .1 # .2 diameter

@@ -25,7 +25,6 @@ class StateLattice():
         # The parents dict tracks how we reach a given state
         # so that we can rebuild a path during path planning
         self.parents: Dict[State, State] = {}
-        self.states: Dict[UUID, State] = {}
         # costs is a dict that tracks the cost to reach a
         # given state
         self.costs : Dict[State, float] = {}
@@ -38,10 +37,8 @@ class StateLattice():
         self.heuristic_cost_function = heuristic_cost_function
 
     def search(self) -> List[State]:
-        print("seraching")
         path: Optional[List[State]] = None
         self.queue.push(self.start)
-        self.states[self.start.id] = self.start
 
         while path == None:
             path = self.step()
@@ -52,11 +49,7 @@ class StateLattice():
     def step(self) -> Optional[List[State]]:
         self.steps_taken += 1
         if self.steps_taken == 50_000:
-            print("step", self.steps_taken)
-            g = self.goal
-            n = self.queue.pop()
-            print(g, n, sqrt((g.x-n.x)**2+(g.y-n.y)**2))
-            raise "done"
+            raise "Excessive search steps to discover path"
 
         # If the queue is empty, game over - no path exists!
         if len(self.queue) == 0:
@@ -66,40 +59,24 @@ class StateLattice():
         current = self.queue.pop()
 
         # Short hop check
-        if current.can_i_transition_to(self.goal):
-            print("transition hop hit")
+        if current.connects(self.goal):
             self.parents[self.goal] = current
             current = self.goal
 
         # If our current state is our goal state, we've hit our
         # goal, we're done! Let's build the path...
         if self.goal == current:
-            print("path found")
             path: List[State] = [current]
             while True:
                 current : State = self.parents[current]
                 path.insert(0, current)
                 if self.start == current:
                     return path
-            # print("path found")
-            # path: List[State] = [current]
-            # while current.parent is not None:
-            #     current = self.states[current.parent]
-            #     path.insert(0, current)
-            # return path
         
         if self.start == current:
             current_cost = 0
         else:
             current_cost = self.costs[current]
-            # parent = self.parents[current]
-            # parent = self.states[current.parent]
-            # current_cost = parent.transition_cost(current)
-            # current_cost = 0
-            # next_state = parent
-            # while next.parent is not None:
-            #     current_cost += 
-            # self.costs[current] = current_cost
         
         # Get each neighbor for the current State and queue
         # them. First, we get a list of potential neighbors
@@ -115,59 +92,27 @@ class StateLattice():
         distance = sqrt((current.x-self.goal.x)**2 + (current.y-self.goal.y)**2)
         neighbors = current.get_neighbors(distance < 0.25)
         for neighbor in neighbors:
-            # Is the neighbor explored already?
-            # found = False
-            # for state in self.states.values():
-            #     if state == neighbor:
-            #         found = True
-            #         break
-            # if not found:
+            # If we have already reached this state, we don't
+            # need to retread over this ground
             if neighbor not in self.parents:
                 self.parents[neighbor] = current
-                self.states[neighbor.id] = neighbor
                 heuristic_cost = 0
-                # if self.heuristic_cost_function is not None:
-                #     heuristic_cost = self.heuristic_cost_function(neighbor)
-                distance = neighbor.distance_between(self.goal)
-                heuristic_cost = 2* distance
-                # if distance < 0.5:
-                #     theta_difference = self.goal.theta-neighbor.theta
-                #     theta_penalty = (theta_difference % (2*math.pi)) ** 2
-                #     theta_penalty *= 5
-                #     heuristic_cost += theta_penalty
-                
+                if self.heuristic_cost_function is not None:
+                    heuristic_cost = self.heuristic_cost_function(neighbor, self.goal)
+
                 transition_cost = current.transition_cost(neighbor)
 
                 neighbor_cost = current_cost + transition_cost
                 self.costs[neighbor] = neighbor_cost
 
                 total_cost = neighbor_cost + heuristic_cost
-                # total_cost = heuristic_cost
 
                 self.queue.push(neighbor, total_cost)
 
                 # Draw a dot for its current spot
                 pos = (neighbor.x, neighbor.y)
                 pos = (pos[0]*100, pos[1]*100)
-                self.display.fill((0, 0, 0), (pos, (2, 2)))
-            else:
-                pos = (neighbor.x, neighbor.y)
-                pos = (pos[0]*100, pos[1]*100)
-                self.display.fill((0, 255, 0), (pos, (1, 1)))
+                self.display.fill((0, 0, 255), (pos, (2, 2)))
 
         pygame.event.get()
         pygame.display.update()
-            # self.states[neighbor.id] = neighbor
-            # heuristic_cost = 0
-            # if self.heuristic_cost_function is not None:
-            #     heuristic_cost = self.heuristic_cost_function(neighbor)
-            
-            # # transition_cost = current.transition_cost(neighbor)
-            # transition_cost = sqrt((self.start.x - current.x)**2 + (self.start.y - current.y)**2)
-
-            # neighbor_cost = current_cost + transition_cost
-            # self.costs[neighbor] = neighbor_cost
-
-            # total_cost = neighbor_cost + heuristic_cost
-
-            # self.queue.push(neighbor, total_cost)

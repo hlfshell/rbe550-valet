@@ -7,7 +7,6 @@ import math
 from valet.states import SkidDriveState, State
 from valet.vehicles.skid_drive import SkidDrive
 from valet.vehicles.vehicle import Vehicle
-# from valet.vehicles.vehicle import Vehicle
 from valet.state_lattice import StateLattice
 
 RED = (255, 0, 0)
@@ -77,25 +76,12 @@ class Game:
 
     def set_vehicle_spawn(self):
         position, orientation = self.user_input_state()
-        # position! (178, 300) -0.5070290609147747
-        # position = (178, 300)
-        # orientation = -0.507
-    
-        print("position!", position, orientation)
         self._vehicle = SkidDrive(position, orientation)
         print("start set", self._vehicle.state)
         self.on_render()
 
     def set_goal(self):
         position, orientation = self.user_input_state()
-        # position! (485, 305) -0.8951737102110684
-        # position = (485, 305)
-        # orientation = -0.895
-        # print("goal position!", position, orientation)
-        # state = SkidDriveState((position), orientation)
-        # state = self.state
-        # self._goal = self._vehicle.state.delta(3.5, 0, 0)
-        # self._goal = self._vehicle.state.delta(3.5, 1, 0)
         self._goal = SkidDrive(position, orientation).state
         print("goal set", self._goal)
         self.on_render()
@@ -123,25 +109,9 @@ class Game:
             sleep(0.1)
         return
     
-    def hueristic(self, target):
-        distance = math.sqrt((target.x-self._goal.x)**2 + (target.y-self._goal.y)**2)
-        theta_difference = self._goal.theta-target.theta
-        theta_penalty = (theta_difference % (2*math.pi)) ** 2
+    def hueristic(self, target : State, goal : State):
+        distance = target.distance_between(goal)
+        # theta_difference = goal.theta-target.theta
+        # theta_penalty = (theta_difference % (2*math.pi)) ** 2
         theta_penalty = 0
         return 2*(distance + theta_penalty)
-
-    def next_state(self):
-        print(">>", self._vehicle.state)
-        while True:
-            for event in pygame.event.get():
-                left : bool
-                right : bool
-                left, _, right = pygame.mouse.get_pressed()
-                mousebuttondown = event.type == pygame.MOUSEBUTTONDOWN
-                if mousebuttondown:
-                    deltas = self._vehicle.state.generate_deltas()
-                    picked = choice(deltas)
-                    print("Picked", picked)
-                    self._vehicle.state = self._vehicle.state.delta(picked[0], picked[1], picked[2])
-                    print(">>", self._vehicle.state)
-            self.on_render()
