@@ -24,6 +24,8 @@ class SkidDrive(Vehicle, pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(50, 50))
         self.surface = None
 
+        self.render()
+
     def render(self):
         self.surface = pygame.transform.rotate(self.image, -1*degrees(self.state.theta))
         # self.image = self.surface # ??

@@ -1,11 +1,12 @@
-from math import sqrt
+from math import degrees, sqrt
 import math
 from typing import Callable, Dict, List, Optional
 from uuid import UUID
 
 import pygame
-from valet.states import State
+from valet.states import SkidDriveState, State
 from valet.queues import AStar
+from valet.vehicles.skid_drive import SkidDrive
 
 
 class StateLattice():
@@ -15,7 +16,8 @@ class StateLattice():
         initial_state: State,
         goal_state: State,
         display,
-        heuristic_cost_function: Optional[Callable] = None
+        collision_detection: Callable,
+        heuristic_cost_function: Optional[Callable] = None,
     ):
         self.display = display
         self.start = initial_state
@@ -35,6 +37,7 @@ class StateLattice():
         # strategies for penalizing behavior to reach our
         # goal faster.
         self.heuristic_cost_function = heuristic_cost_function
+        self.collision_detection = collision_detection
 
     def search(self) -> List[State]:
         path: Optional[List[State]] = None
@@ -59,12 +62,14 @@ class StateLattice():
         current = self.queue.pop()
 
         # Short hop check
-        if current.connects(self.goal):
+        if current.connects(self.goal, time_increment=0.5):
             self.parents[self.goal] = current
             current = self.goal
 
         # If our current state is our goal state, we've hit our
         # goal, we're done! Let's build the path...
+        current_thetaless = current.delta(0, 0, 0)
+        current_thetaless.theta = self.goal.theta
         if self.goal == current:
             path: List[State] = [current]
             while True:
@@ -90,11 +95,27 @@ class StateLattice():
         # calculating its total cost, which includes the
         # heuristic cost as well.
         distance = sqrt((current.x-self.goal.x)**2 + (current.y-self.goal.y)**2)
-        neighbors = current.get_neighbors(distance < 0.25)
+        close = distance < 0.25
+        neighbors = current.get_neighbors(
+            5 if not close else 1,
+            0.5 if not close else 0.2
+        )
         for neighbor in neighbors:
             # If we have already reached this state, we don't
             # need to retread over this ground
             if neighbor not in self.parents:
+                # collisions detection
+                xy = (neighbor.x, neighbor.y)
+                orientation = degrees(neighbor.theta)
+                position = (xy[0]*100, xy[1]*100)
+                tmp_vehicle = SkidDrive(
+                        position, orientation
+                    )
+                if self.collision_detection(
+                    tmp_vehicle
+                ):
+                    continue
+
                 self.parents[neighbor] = current
                 heuristic_cost = 0
                 if self.heuristic_cost_function is not None:
@@ -106,13 +127,17 @@ class StateLattice():
                 self.costs[neighbor] = neighbor_cost
 
                 total_cost = neighbor_cost + heuristic_cost
+                # if close:
+                #     total_cost = neighbor_cost + heuristic_cost
+                # else:
+                #     total_cost = heuristic_cost
 
                 self.queue.push(neighbor, total_cost)
 
                 # Draw a dot for its current spot
                 pos = (neighbor.x, neighbor.y)
                 pos = (pos[0]*100, pos[1]*100)
-                self.display.fill((0, 0, 255), (pos, (2, 2)))
+                self.display.fill((0, 0, 0), (pos, (2, 2)))
 
         pygame.event.get()
         pygame.display.update()

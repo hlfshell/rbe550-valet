@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from audioop import reverse
 from typing import List, Optional, Tuple
 from math import cos, sin, sqrt, pi
 from uuid import uuid4, UUID
@@ -59,21 +60,26 @@ class SkidDriveState(State):
         self.id = uuid4()
         self.parent = parent
 
-    def get_neighbors(self, close = False, time_increment=0.1) -> List[State]:
+    def get_neighbors(self, increment, time_increment=0.1) -> List[State]:
         neighbors = []
 
         uruls = []
-        increment = 0.5
+
+        # increment = 5
+        # if close:
+        #     increment = 0.5
 
         urul_max = 20.0
-        for urd in arange(-0.5*urul_max, urul_max+increment, increment):
-            for url in arange(-0.5*urul_max, urul_max+increment, increment):
-                if url < 0 and urd > 0:
+        for urd in arange(-urul_max, urul_max+increment, increment):
+            for url in arange(-urul_max, urul_max+increment, increment):
+                # if url < 0 and urd > 0:
+                #     continue
+                # elif url > 0 and urd < 0:
+                #     continue
+                if url <= 0 and urd <= 0:
                     continue
-                elif url > 0 and urd < 0:
-                    continue
-                elif url == 0 and urd == 0:
-                    continue
+                # elif url == 0 and urd == 0:
+                #     continue
                 uruls.append((urd, url))
 
         # For each urul combo, we calculate delta x, y, and theta:
@@ -129,14 +135,20 @@ class SkidDriveState(State):
         return SkidDriveState((x, y), theta, parent=self.id)
     
     def transition_cost(self, to: SkidDriveState) -> float:
+        # Steering / Theta penalty
         theta_difference = abs(self.theta - to.theta) % (2*pi)
         if theta_difference > pi:
             theta_difference = (2*pi) - theta_difference
         theta_penalty = 0 * theta_difference
-        # theta_penalty = 0.5 * ((self.theta-to.theta)%(2*pi))**2
+
+        # Reverse Penalty
+        reverse_penalty = 3#2 if self.is_reverse(to) else 1
+        
+        # Distance Penalty
         distance_penalty = sqrt((self.x-to.x)**2 + (self.y-to.y)**2)
         # theta_penalty = 0
-        return distance_penalty + theta_penalty
+        cost = reverse_penalty * distance_penalty + theta_penalty
+        return cost
     
     def distance_between(self, other : SkidDriveState) -> float:
         return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
@@ -146,6 +158,19 @@ class SkidDriveState(State):
         y = round(self.y, 2)
         theta = round(self.theta, 1)
         return (x, y, theta)
+
+    def is_reverse(self, other: SkidDriveState) -> bool:
+        # An angle is in reverse of the other angle if
+        # the minimum difference between it and the other
+        # angle is more than pi/2 (90 degrees) separated
+        # from it
+
+        # THIS IS WRONG!!! use the orientation from
+        # the xy change dumb dumb
+        theta_difference = abs(self.theta - other.theta) % (2*pi)
+        if theta_difference > pi:
+            theta_difference = (2*pi) - theta_difference
+        return theta_difference > pi/2
 
     def __eq__(self, other: State) -> bool:
         if other is None:
