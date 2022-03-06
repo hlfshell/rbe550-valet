@@ -60,7 +60,7 @@ class SkidDriveState(State):
         self.id = uuid4()
         self.parent = parent
 
-    def get_neighbors(self, increment, time_increment=0.1) -> List[State]:
+    def get_neighbors(self, increment, time_increment=0.1, close : bool = False) -> List[State]:
         neighbors = []
 
         uruls = []
@@ -70,18 +70,44 @@ class SkidDriveState(State):
         #     increment = 0.5
 
         urul_max = 20.0
-        for urd in arange(-urul_max, urul_max+increment, increment):
-            for url in arange(-urul_max, urul_max+increment, increment):
-                # if url < 0 and urd > 0:
-                #     continue
-                # elif url > 0 and urd < 0:
-                #     continue
-                if url <= 0 and urd <= 0:
-                    continue
-                # elif url == 0 and urd == 0:
-                #     continue
-                uruls.append((urd, url))
+        # for urd in arange(-urul_max, urul_max+increment, increment):
+        #     for url in arange(-urul_max, urul_max+increment, increment):
+        #         # if url < 0 and urd > 0:
+        #         #     continue
+        #         # elif url > 0 and urd < 0:
+        #         #     continue
+        #         if url <= 0 and urd <= 0:
+        #             continue
+        #         if abs(min([url, urd])) > max([url, urd]):
+        #             continue
+        #         # elif url == 0 and urd == 0:
+        #         #     continue
+        #         uruls.append((urd, url))
 
+        # if not close:
+        if increment > 1:
+            uruls = []
+            for i in arange(increment, urul_max + increment, increment):
+                uruls.append((i, 20.0))
+                uruls.append((20.0, i))
+        else:
+            uruls = []
+            for i in arange(-urul_max, urul_max + increment, increment):
+                for j in arange(0, urul_max + increment, increment):
+                    if i and j == 0:
+                        continue
+                    uruls.append((i, j))
+
+        # uruls = [
+        #     (5.0, 20.0),
+        #     (10.0, 20.0),
+        #     (15.0, 20.0),
+        #     (20.0, 20.0),
+        #     (20.0, 15.0),
+        #     (20.0, 10.0),
+        #     (20.0, 5.0)
+        # ]
+        
         # For each urul combo, we calculate delta x, y, and theta:
         r = .1 # .2 diameter
         L = 0.4 # justify
@@ -123,7 +149,7 @@ class SkidDriveState(State):
         Ul = ((2*xdot)/(r*cos(other.theta))) - ((thetadot * L)/r)
         Ur = ((thetadot*L)/r) + Ul
         
-        if Ul >= -10 and Ul <= 20 and Ur >= -10 and Ur <= 20:
+        if Ul >= -20 and Ul <= 20 and Ur >= -20 and Ur <= 20:
             return True
         else:
             return False
@@ -139,15 +165,15 @@ class SkidDriveState(State):
         theta_difference = abs(self.theta - to.theta) % (2*pi)
         if theta_difference > pi:
             theta_difference = (2*pi) - theta_difference
-        theta_penalty = 0 * theta_difference
+        theta_penalty = 2 * theta_difference
 
         # Reverse Penalty
-        reverse_penalty = 3#2 if self.is_reverse(to) else 1
+        reverse_penalty = 1#2 if self.is_reverse(to) else 1
         
         # Distance Penalty
         distance_penalty = sqrt((self.x-to.x)**2 + (self.y-to.y)**2)
         # theta_penalty = 0
-        cost = reverse_penalty * distance_penalty + theta_penalty
+        cost = distance_penalty + theta_penalty
         return cost
     
     def distance_between(self, other : SkidDriveState) -> float:

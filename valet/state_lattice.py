@@ -15,6 +15,8 @@ class StateLattice():
         self,
         initial_state: State,
         goal_state: State,
+        time_increment: float,
+        increment: float,
         display,
         collision_detection: Callable,
         heuristic_cost_function: Optional[Callable] = None,
@@ -24,6 +26,8 @@ class StateLattice():
         self.goal = goal_state
         self.queue = AStar()
         self.steps_taken = 0
+        self.time_increment = time_increment
+        self.increment = increment
         # The parents dict tracks how we reach a given state
         # so that we can rebuild a path during path planning
         self.parents: Dict[State, State] = {}
@@ -62,14 +66,15 @@ class StateLattice():
         current = self.queue.pop()
 
         # Short hop check
-        if current.connects(self.goal, time_increment=0.5):
+        if current.connects(self.goal, time_increment=self.time_increment):
             self.parents[self.goal] = current
             current = self.goal
 
         # If our current state is our goal state, we've hit our
         # goal, we're done! Let's build the path...
-        current_thetaless = current.delta(0, 0, 0)
-        current_thetaless.theta = self.goal.theta
+        # current_thetaless = current.delta(0, 0, 0)
+        # current_thetaless.theta = self.goal.theta
+        # if self.goal == current_thetaless:
         if self.goal == current:
             path: List[State] = [current]
             while True:
@@ -95,14 +100,20 @@ class StateLattice():
         # calculating its total cost, which includes the
         # heuristic cost as well.
         distance = sqrt((current.x-self.goal.x)**2 + (current.y-self.goal.y)**2)
-        close = distance < 0.25
+        close = distance < (2 * self.time_increment)
         neighbors = current.get_neighbors(
-            5 if not close else 1,
-            0.5 if not close else 0.2
+            self.increment,#5 if not close else 1,
+            self.time_increment,#0.5 if not close else 0.2,
+            close=close
         )
         for neighbor in neighbors:
             # If we have already reached this state, we don't
             # need to retread over this ground
+            # found = False
+            # for node in self.parents.values():
+            #     if neighbor == node:
+            #         found = True
+            #         break
             if neighbor not in self.parents:
                 # collisions detection
                 xy = (neighbor.x, neighbor.y)
