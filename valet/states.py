@@ -47,15 +47,16 @@ class State(ABC):
 
 class SkidDriveState(State):
 
-    def __init__(self, xy: Tuple[float, float], theta: float, parent: Optional[UUID] = None):
+    def __init__(self, xy: Tuple[float, float], theta: float, parent: Optional[UUID] = None, exact=False):
         super().__init__()
         self.x = xy[0]
         self.y = xy[1]
         self.theta = theta
-        x, y, theta = self.get_rounded()
-        self.x = x
-        self.y = y
-        self.theta = theta
+        if not exact:
+            x, y, theta = self.get_rounded()
+            self.x = x
+            self.y = y
+            self.theta = theta
         self.theta = theta % (2*pi)
         self.id = uuid4()
         self.parent = parent
@@ -129,7 +130,7 @@ class SkidDriveState(State):
 
     def connects(self, other : SkidDriveState, time_increment=0.1) -> bool:
         # First, is it within a distance to even be possible?
-        max_distance = 2 * time_increment # 2m/s
+        max_distance = 1 * time_increment # 2m/s
         
         if self.distance_between(other) > max_distance:
             return False
@@ -154,12 +155,18 @@ class SkidDriveState(State):
         else:
             return False
 
-    def delta(self, deltax: float, deltay: float, deltatheta: float) -> SkidDriveState:
+    def delta(self, deltax: float, deltay: float, deltatheta: float, exact=False) -> SkidDriveState:
         x = self.x + deltax
         y = self.y + deltay
         theta = self.theta + deltatheta
-        return SkidDriveState((x, y), theta, parent=self.id)
-    
+        return SkidDriveState((x, y), theta, parent=self.id, exact=exact)
+
+    def get_delta(self, to: SkidDriveState) -> Tuple[float, float, float]:
+        xdelta = to.x - self.x
+        ydelta = to.y - self.y
+        thetadelta = to.theta - self.theta
+        return (xdelta, ydelta, thetadelta)
+
     def transition_cost(self, to: SkidDriveState) -> float:
         # Steering / Theta penalty
         theta_difference = abs(self.theta - to.theta) % (2*pi)

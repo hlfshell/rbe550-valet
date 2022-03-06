@@ -21,7 +21,7 @@ class StateLattice():
         collision_detection: Callable,
         heuristic_cost_function: Optional[Callable] = None,
     ):
-        self.display = display
+        self.display : pygame.Surface = display
         self.start = initial_state
         self.goal = goal_state
         self.queue = AStar()
@@ -107,6 +107,17 @@ class StateLattice():
             close=close
         )
         for neighbor in neighbors:
+            width, height = self.display.get_size()
+            max_x = width / 100
+            max_h = height / 100
+            # If the neighbor state is negative x/y or has an x/y that goes
+            # beyond the total size of our edges, we don't want to consider
+            # it. IE don't go out of bounds.
+            if neighbor.x < 0 or neighbor.y < 0:
+                continue
+            if neighbor.x > max_x or neighbor.y > max_h:
+                continue
+
             # If we have already reached this state, we don't
             # need to retread over this ground
             # found = False

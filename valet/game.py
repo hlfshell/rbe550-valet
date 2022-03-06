@@ -1,6 +1,7 @@
 from random import choice
 from time import sleep
 from typing import List, Tuple
+from numpy import arange
 import pygame
 from pygame.locals import K_RETURN, K_w, K_a, K_s, K_d
 import math
@@ -174,10 +175,11 @@ class Game:
         return False
 
     def plan(self):
+        time_interval = 0.5
         planner = StateLattice(
             self._vehicle.state,
             self._goal,
-            0.5,#1.0,
+            time_interval,
             5.0,
             self._display_surface,
             self.collision_detection,
@@ -188,43 +190,40 @@ class Game:
         print(len(path))
         self.draw_path(path)
 
-        full_path = path
-        # full_path = []
-        # start = path.pop(0)
-        # second = path.pop(0)
-        # while True:
-        #     print("planning from ", start, second)
-        #     planner = StateLattice(
-        #         start,
-        #         second,
-        #         0.2,
-        #         5.0,
-        #         self._display_surface,
-        #         self.collision_detection,
-        #         heuristic_cost_function=self.heuristic_two
-        #     )
-        #     # startxy = (start.x*100, start.y*100)
-        #     # secondxy = (second.x*100, second.y*100)
-        #     # pygame.draw.line(self._display_surface, (0, 255, 0), startxy, secondxy, width=3)
-        #     new_path = planner.search()
-
-        #     full_path += new_path
-        #     start = second
-        #     if len(path) == 0:
-        #         break
-        #     second = path.pop(0)
-        # print("full path", full_path, len(full_path))
-        # i = 0
-        # self.draw_path(full_path, (0, 0, 255))
-        # pygame.display.update()
-        # sleep(3)
+        # full_path = path
+        start = path.pop(0)
+        full_path = [start]
+        second = path.pop(0)
+        while True:
+            xdelta, ydelta, thetadelta = start.get_delta(second)
+            xdot = xdelta/time_interval
+            ydot = ydelta/time_interval
+            thetadot = thetadelta/time_interval
+            for i in arange(0, time_interval * self._fps):
+                xdelta = xdot * (1/self._fps)
+                ydelta = ydot * (1/self._fps)
+                thetadelta = thetadot * (1/self._fps)
+                inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, exact=True)
+                print("??", inbetween_state)
+                full_path.append(inbetween_state)
+            full_path.append(second)
+            start = second
+            if len(path) == 0:
+                break
+            second = path.pop(0)
+        print("full path", full_path, len(full_path))
+        i = 0
+        self.draw_path(full_path, (0, 0, 255))
+        pygame.display.update()
+        sleep(1)
         for state in full_path:
-            # i+=1
+            i+=1
             self._vehicle.state = state
             self.on_render()
             pygame.display.update()
-            sleep(0.5)
-        # print("final", i)
+            self._frame_per_sec.tick(self._fps)
+            # sleep(0.5)
+        print("final", i)
         return
     
     def draw_path(self, path: List[SkidDriveState], color: Tuple[int, int, int]=(0, 255, 0)):
