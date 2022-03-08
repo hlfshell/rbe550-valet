@@ -1,11 +1,11 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from audioop import reverse
 from typing import List, Optional, Tuple
 from math import cos, sin, sqrt, pi
 from uuid import uuid4, UUID
 
 from numpy import arange
+
 
 class State(ABC):
 
@@ -13,7 +13,7 @@ class State(ABC):
         super().__init__()
 
     @abstractmethod
-    def get_neighbors(self) -> List[State]:
+    def get_neighbors(self, time_increment : float, close : bool=False) -> List[State]:
         pass
 
     @abstractmethod
@@ -21,11 +21,15 @@ class State(ABC):
         pass
 
     @abstractmethod
-    def connects(self, other : State) -> bool:
+    def connects(self, other : State, time_increment : float) -> bool:
         pass
 
     @abstractmethod
-    def distance_between(self, other : SkidDriveState) -> float:
+    def distance_between(self, other : State) -> float:
+        return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
+
+    @abstractmethod
+    def clone(self) -> State:
         pass
 
     @abstractmethod
@@ -65,49 +69,12 @@ class SkidDriveState(State):
         neighbors = []
 
         uruls = []
-
-        # increment = 5
-        # if close:
-        #     increment = 0.5
-
         urul_max = 20.0
-        # for urd in arange(-urul_max, urul_max+increment, increment):
-        #     for url in arange(-urul_max, urul_max+increment, increment):
-        #         # if url < 0 and urd > 0:
-        #         #     continue
-        #         # elif url > 0 and urd < 0:
-        #         #     continue
-        #         if url <= 0 and urd <= 0:
-        #             continue
-        #         if abs(min([url, urd])) > max([url, urd]):
-        #             continue
-        #         # elif url == 0 and urd == 0:
-        #         #     continue
-        #         uruls.append((urd, url))
-
-        # if not close:
         if increment > 1:
             uruls = []
             for i in arange(increment, urul_max + increment, increment):
                 uruls.append((i, 20.0))
                 uruls.append((20.0, i))
-        else:
-            uruls = []
-            for i in arange(-urul_max, urul_max + increment, increment):
-                for j in arange(0, urul_max + increment, increment):
-                    if i and j == 0:
-                        continue
-                    uruls.append((i, j))
-
-        # uruls = [
-        #     (5.0, 20.0),
-        #     (10.0, 20.0),
-        #     (15.0, 20.0),
-        #     (20.0, 20.0),
-        #     (20.0, 15.0),
-        #     (20.0, 10.0),
-        #     (20.0, 5.0)
-        # ]
         
         # For each urul combo, we calculate delta x, y, and theta:
         r = .1 # .2 diameter
@@ -126,9 +93,10 @@ class SkidDriveState(State):
 
             state = self.delta(xdelta, ydelta, thetadelta)
             neighbors.append(state)
+
         return neighbors
 
-    def connects(self, other : SkidDriveState, time_increment=0.1) -> bool:
+    def connects(self, other : SkidDriveState, time_increment : float ) -> bool:
         # First, is it within a distance to even be possible?
         max_distance = 1 * time_increment # 2m/s
         
@@ -155,6 +123,9 @@ class SkidDriveState(State):
         else:
             return False
 
+    def distance_between(self, other : SkidDriveState) -> float:
+        return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
+
     def delta(self, deltax: float, deltay: float, deltatheta: float, exact=False) -> SkidDriveState:
         x = self.x + deltax
         y = self.y + deltay
@@ -173,18 +144,11 @@ class SkidDriveState(State):
         if theta_difference > pi:
             theta_difference = (2*pi) - theta_difference
         theta_penalty = 2 * theta_difference
-
-        # Reverse Penalty
-        reverse_penalty = 1#2 if self.is_reverse(to) else 1
         
         # Distance Penalty
-        distance_penalty = sqrt((self.x-to.x)**2 + (self.y-to.y)**2)
-        # theta_penalty = 0
+        distance_penalty = self.distance_between(to)
         cost = distance_penalty + theta_penalty
         return cost
-    
-    def distance_between(self, other : SkidDriveState) -> float:
-        return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
 
     def get_rounded(self) -> Tuple[float, float, float]:
         x = round(self.x, 2)
@@ -192,18 +156,13 @@ class SkidDriveState(State):
         theta = round(self.theta, 1)
         return (x, y, theta)
 
-    def is_reverse(self, other: SkidDriveState) -> bool:
-        # An angle is in reverse of the other angle if
-        # the minimum difference between it and the other
-        # angle is more than pi/2 (90 degrees) separated
-        # from it
-
-        # THIS IS WRONG!!! use the orientation from
-        # the xy change dumb dumb
-        theta_difference = abs(self.theta - other.theta) % (2*pi)
-        if theta_difference > pi:
-            theta_difference = (2*pi) - theta_difference
-        return theta_difference > pi/2
+    def clone(self) -> SkidDriveState:
+        return SkidDriveState(
+            (self.x, self.y),
+            self.theta,
+            parent = self.parent,
+            exact = True
+        )
 
     def __eq__(self, other: State) -> bool:
         if other is None:

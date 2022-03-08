@@ -1,12 +1,14 @@
-from time import sleep
 from valet.game import Game
+from valet.states import SkidDriveState
+from valet.vehicles.skid_drive import SkidDrive
 
 
-game = Game()
+game = Game((800, 800), 100)
 game.init()
-game.set_vehicle_spawn()
+vehicle = SkidDrive(SkidDriveState((0,0), 0), 100)
+game.set_vehicle_spawn(vehicle)
 game.draw_obstacles()
-# game.drive()
+
 while True:
-    game.set_goal()
+    game.set_goal(vehicle)
     game.plan()

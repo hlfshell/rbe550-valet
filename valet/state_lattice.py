@@ -16,10 +16,9 @@ class StateLattice():
         initial_state: State,
         goal_state: State,
         time_increment: float,
-        increment: float,
         display,
+        pixels_per_meter : int,
         collision_detection: Callable,
-        heuristic_cost_function: Optional[Callable] = None,
     ):
         self.display : pygame.Surface = display
         self.start = initial_state
@@ -27,7 +26,8 @@ class StateLattice():
         self.queue = AStar()
         self.steps_taken = 0
         self.time_increment = time_increment
-        self.increment = increment
+        self.increment = 5.0
+        self.pixels_per_meter = pixels_per_meter
         # The parents dict tracks how we reach a given state
         # so that we can rebuild a path during path planning
         self.parents: Dict[State, State] = {}
@@ -35,12 +35,6 @@ class StateLattice():
         # given state
         self.costs : Dict[State, float] = {}
         self.costs[self.start] = 0
-        # The heuristic cost function solves the h(x), and
-        # determines if we're utilizing Dijkstra's or A*
-        # It is with this that we can develop different
-        # strategies for penalizing behavior to reach our
-        # goal faster.
-        self.heuristic_cost_function = heuristic_cost_function
         self.collision_detection = collision_detection
 
     def search(self) -> List[State]:
@@ -49,8 +43,6 @@ class StateLattice():
 
         while path == None:
             path = self.step()
-        print("done", path)
-        print("steps", self.steps_taken)
         return path
     
     def step(self) -> Optional[List[State]]:
@@ -126,22 +118,15 @@ class StateLattice():
             #         found = True
             #         break
             if neighbor not in self.parents:
-                # collisions detection
-                xy = (neighbor.x, neighbor.y)
-                orientation = degrees(neighbor.theta)
-                position = (xy[0]*100, xy[1]*100)
-                tmp_vehicle = SkidDrive(
-                        position, orientation
-                    )
-                if self.collision_detection(
-                    tmp_vehicle
-                ):
+                # Collisions detection
+                shadow = SkidDrive(neighbor, self.pixels_per_meter)
+                if self.collision_detection(shadow):
                     continue
 
                 self.parents[neighbor] = current
-                heuristic_cost = 0
-                if self.heuristic_cost_function is not None:
-                    heuristic_cost = self.heuristic_cost_function(neighbor, self.goal)
+
+                distance = neighbor.distance_between(self.goal)
+                heuristic_cost = 2 * distance
 
                 transition_cost = current.transition_cost(neighbor)
 
@@ -149,10 +134,6 @@ class StateLattice():
                 self.costs[neighbor] = neighbor_cost
 
                 total_cost = neighbor_cost + heuristic_cost
-                # if close:
-                #     total_cost = neighbor_cost + heuristic_cost
-                # else:
-                #     total_cost = heuristic_cost
 
                 self.queue.push(neighbor, total_cost)
 
