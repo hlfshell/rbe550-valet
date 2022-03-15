@@ -1,10 +1,12 @@
 from math import degrees, sqrt
 import math
+from time import sleep
 from typing import Callable, Dict, List, Optional
 from uuid import UUID
 
 import pygame
-from valet.states import SkidDriveState, State
+from valet.states.ackermann_drive import AckermannDriveState
+from valet.states.states import State
 from valet.queues import AStar
 from valet.vehicles.skid_drive import SkidDrive
 
@@ -67,7 +69,8 @@ class StateLattice():
         # current_thetaless = current.delta(0, 0, 0)
         # current_thetaless.theta = self.goal.theta
         # if self.goal == current_thetaless:
-        if self.goal == current:
+        # if self.goal == current:
+        if self.goal.goal_check(current):
             path: List[State] = [current]
             while True:
                 current : State = self.parents[current]
@@ -91,12 +94,10 @@ class StateLattice():
         # not, we add it to our queue to consider,
         # calculating its total cost, which includes the
         # heuristic cost as well.
-        distance = sqrt((current.x-self.goal.x)**2 + (current.y-self.goal.y)**2)
-        close = distance < (2 * self.time_increment)
+        # distance = sqrt((current.x-self.goal.x)**2 + (current.y-self.goal.y)**2)
         neighbors = current.get_neighbors(
             self.increment,#5 if not close else 1,
             self.time_increment,#0.5 if not close else 0.2,
-            close=close
         )
         for neighbor in neighbors:
             width, height = self.display.get_size()
@@ -126,7 +127,7 @@ class StateLattice():
                 self.parents[neighbor] = current
 
                 distance = neighbor.distance_between(self.goal)
-                heuristic_cost = 2 * distance
+                heuristic_cost = 5 * distance
 
                 transition_cost = current.transition_cost(neighbor)
 
@@ -141,6 +142,12 @@ class StateLattice():
                 pos = (neighbor.x, neighbor.y)
                 pos = (pos[0]*100, pos[1]*100)
                 self.display.fill((0, 0, 0), (pos, (2, 2)))
+                # try:
+                # AckermannDriveState.draw_path(self.display, current, neighbor, self.time_increment, self.pixels_per_meter)
+                # except Exception as e:
+                #     print("oh noes", e)
+                #     exit()
 
         pygame.event.get()
         pygame.display.update()
+        # sleep(0.5)

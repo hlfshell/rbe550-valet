@@ -1,53 +1,10 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple
 from math import cos, sin, sqrt, pi
 from uuid import uuid4, UUID
 
 from numpy import arange
-
-
-class State(ABC):
-
-    def __init__(self):
-        super().__init__()
-
-    @abstractmethod
-    def get_neighbors(self, time_increment : float, close : bool=False) -> List[State]:
-        pass
-
-    @abstractmethod
-    def transition_cost(to: State):
-        pass
-
-    @abstractmethod
-    def connects(self, other : State, time_increment : float) -> bool:
-        pass
-
-    @abstractmethod
-    def distance_between(self, other : State) -> float:
-        return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
-
-    @abstractmethod
-    def clone(self) -> State:
-        pass
-
-    @abstractmethod
-    def __eq__(self, other: State) -> bool:
-        pass
-
-    @abstractmethod
-    def __hash__(self) -> int:
-        pass
-    
-    @abstractmethod
-    def __str__(self) -> str:
-        pass
-
-    @abstractmethod
-    def __lt__(self) -> str:
-        pass
-
+from valet.states.states import State
 
 class SkidDriveState(State):
 
@@ -65,7 +22,7 @@ class SkidDriveState(State):
         self.id = uuid4()
         self.parent = parent
 
-    def get_neighbors(self, increment, time_increment=0.1, close : bool = False) -> List[State]:
+    def get_neighbors(self, increment, time_increment=0.1) -> List[State]:
         neighbors = []
 
         uruls = []
@@ -96,9 +53,12 @@ class SkidDriveState(State):
 
         return neighbors
 
+    def distance_between(self, other : SkidDriveState) -> float:
+        return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
+
     def connects(self, other : SkidDriveState, time_increment : float ) -> bool:
         # First, is it within a distance to even be possible?
-        max_distance = 1 * time_increment # 2m/s
+        max_distance = 2 * time_increment # 2m/s
         
         if self.distance_between(other) > max_distance:
             return False
@@ -122,9 +82,6 @@ class SkidDriveState(State):
             return True
         else:
             return False
-
-    def distance_between(self, other : SkidDriveState) -> float:
-        return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
 
     def delta(self, deltax: float, deltay: float, deltatheta: float, exact=False) -> SkidDriveState:
         x = self.x + deltax
@@ -163,6 +120,9 @@ class SkidDriveState(State):
             parent = self.parent,
             exact = True
         )
+
+    def goal_check(self, other : State) -> bool:
+        return self == other
 
     def __eq__(self, other: State) -> bool:
         if other is None:

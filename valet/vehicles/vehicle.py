@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 import math
-from valet.states import State
+from valet.states.states import State
 from typing import Callable
 import pygame
 

@@ -1,34 +1,33 @@
 from __future__ import annotations
+from math import degrees
 import math
 from typing import Tuple
-from valet.states.skid_drive import SkidDriveState
-from valet.vehicles.vehicle import Vehicle
+
 import pygame
-from math import degrees
-from typing import Callable
+from valet.vehicles.vehicle import Vehicle
+from valet.states.ackermann_drive import AckermannDriveState
 
-SKID_DRIVE_SPRITE = "./valet/assets/robot.png"
+ACKERMAN_DRIVE_SPRITE = "./valet/assets/robot.png"
 
-class SkidDrive(Vehicle, pygame.sprite.Sprite):
+class Ackermann(Vehicle, pygame.sprite.Sprite):
 
     def __init__(
         self,
-        state: SkidDriveState,
+        state: AckermannDriveState,
         pixels_to_meter : int
     ):
         self.pixels_to_meter = pixels_to_meter
         self.state = state
         self.image_shape = (137, 100)
-        # TODO : resize per pixel conversion
-        self.image : pygame.Surface= None
+        self.image : pygame.Surface = None
         self.rect : pygame.rect = None
         self.surface : pygame.Surface = None
         self.render()
-
+    
     def render(self):
         if self.image is None:
-            self.image = pygame.image.load(SKID_DRIVE_SPRITE).convert_alpha()
-            self.rect = self.image.get_rect(center=(50, 50))
+            self.image = pygame.image.load(ACKERMAN_DRIVE_SPRITE).convert_alpha()
+            self.rect = self.image.get_rect(center=(50,50))
         self.surface = pygame.transform.rotate(self.image, -1*degrees(self.state.theta))
         xy = (self.state.x*self.pixels_to_meter, self.state.y*self.pixels_to_meter)
         self.rect = self.surface.get_rect(center=xy)
@@ -62,8 +61,9 @@ class SkidDrive(Vehicle, pygame.sprite.Sprite):
         y = position[1] / self.pixels_to_meter
         theta = math.radians(-1*orientation)
 
-        self.state = SkidDriveState((x, y), theta)
+        self.state = AckermannDriveState((x, y), theta, 0.0)
     
-    def clone(self) -> SkidDrive:
+    def clone(self) -> Ackermann:
         state = self.state.clone()
-        return SkidDrive(state, self.pixels_to_meter)
+        return Ackermann(state, self.pixels_to_meter)
+    

@@ -5,7 +5,7 @@ import pygame
 from pygame.locals import K_w, K_a, K_s, K_d
 import math
 from valet.obstacle import Obstacle
-from valet.states import SkidDriveState, State
+from valet.states.states import State
 from valet.vehicles.vehicle import Vehicle
 from valet.vehicles.skid_drive import SkidDrive
 from valet.state_lattice import StateLattice
@@ -142,24 +142,30 @@ class Game:
         path = planner.search()
 
         self.draw_path(path)
+        print("=== PATH ===")
+        for i, node in enumerate(path):
+            print(i+1, node)
+        print("============")
         sleep(1)
         self.animate_path(path)
 
     def animate_path(self, draw_path: List[State]):
         path = draw_path.copy()
         start = path.pop(0)
-        full_path = [start]
+        full_path : List[State] = [start]
         second = path.pop(0)
         while True:
-            xdelta, ydelta, thetadelta = start.get_delta(second)
+            xdelta, ydelta, thetadelta, psidelta = start.get_delta(second)
             xdot = xdelta/self.time_interval
             ydot = ydelta/self.time_interval
             thetadot = thetadelta/self.time_interval
+            psidot = psidelta / self.time_interval
             for i in arange(0, self.time_interval * self._fps):
                 xdelta = xdot * (1/self._fps)
                 ydelta = ydot * (1/self._fps)
                 thetadelta = thetadot * (1/self._fps)
-                inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, exact=True)
+                psidelta = psidot * (1/self._fps)
+                inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, psidelta, exact=True)
                 full_path.append(inbetween_state)
             full_path.append(second)
             start = second
@@ -173,7 +179,7 @@ class Game:
             pygame.display.update()
             self._frame_per_sec.tick(self._fps)
 
-    def draw_path(self, path: List[SkidDriveState], color: Tuple[int, int, int]=(0, 255, 0)):
+    def draw_path(self, path: List[State], color: Tuple[int, int, int]=(0, 255, 0)):
         drawn = path.copy()
         first = drawn.pop(0)
         second  = drawn.pop(0)

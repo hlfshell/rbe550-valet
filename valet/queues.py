@@ -1,5 +1,5 @@
 from queue import PriorityQueue
-from valet.states import State
+from valet.states.states import State
 
 class AStar():
 
