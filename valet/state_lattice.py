@@ -5,10 +5,9 @@ from typing import Callable, Dict, List, Optional
 from uuid import UUID
 
 import pygame
-from valet.states.ackermann_drive import AckermannDriveState
 from valet.states.states import State
 from valet.queues import AStar
-from valet.vehicles.skid_drive import SkidDrive
+from valet.vehicles.vehicle import Vehicle
 
 
 class StateLattice():
@@ -21,6 +20,7 @@ class StateLattice():
         display,
         pixels_per_meter : int,
         collision_detection: Callable,
+        vehicle_type : Callable
     ):
         self.display : pygame.Surface = display
         self.start = initial_state
@@ -38,6 +38,7 @@ class StateLattice():
         self.costs : Dict[State, float] = {}
         self.costs[self.start] = 0
         self.collision_detection = collision_detection
+        self.vehicle_type : Vehicle = vehicle_type
 
     def search(self) -> List[State]:
         path: Optional[List[State]] = None
@@ -101,8 +102,8 @@ class StateLattice():
         )
         for neighbor in neighbors:
             width, height = self.display.get_size()
-            max_x = width / 100
-            max_h = height / 100
+            max_x = width / self.pixels_per_meter
+            max_h = height / self.pixels_per_meter
             # If the neighbor state is negative x/y or has an x/y that goes
             # beyond the total size of our edges, we don't want to consider
             # it. IE don't go out of bounds.
@@ -120,7 +121,7 @@ class StateLattice():
             #         break
             if neighbor not in self.parents:
                 # Collisions detection
-                shadow = SkidDrive(neighbor, self.pixels_per_meter)
+                shadow = self.vehicle_type(neighbor, self.pixels_per_meter)
                 if self.collision_detection(shadow):
                     continue
 
@@ -140,7 +141,7 @@ class StateLattice():
 
                 # Draw a dot for its current spot
                 pos = (neighbor.x, neighbor.y)
-                pos = (pos[0]*100, pos[1]*100)
+                pos = (pos[0]*self.pixels_per_meter, pos[1]*self.pixels_per_meter)
                 self.display.fill((0, 0, 0), (pos, (2, 2)))
                 # try:
                 # AckermannDriveState.draw_path(self.display, current, neighbor, self.time_increment, self.pixels_per_meter)

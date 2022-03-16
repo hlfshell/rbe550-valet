@@ -1,5 +1,5 @@
 from time import sleep
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 from numpy import arange
 import pygame
 from pygame.locals import K_w, K_a, K_s, K_d
@@ -22,6 +22,7 @@ class Game:
         self,
         window_size: Tuple[int, int],
         pixels_per_meter: int,
+        vehicle_type : Callable
     ):
         self.window_size = window_size
         self.pixels_per_meter = pixels_per_meter
@@ -34,6 +35,7 @@ class Game:
         self._fps = 60
         self.obstacles : List[Obstacle] = []
         self.time_interval = 0.5
+        self.vehicle_type : Vehicle = vehicle_type
 
     def init(self):
         pygame.init()
@@ -138,6 +140,7 @@ class Game:
             self._display_surface,
             self.pixels_per_meter,
             self.collision_detection,
+            self.vehicle_type
         )
         path = planner.search()
 
@@ -155,24 +158,22 @@ class Game:
         full_path : List[State] = [start]
         second = path.pop(0)
         while True:
-            xdelta, ydelta, thetadelta, psidelta = start.get_delta(second)
+            xdelta, ydelta, thetadelta = start.get_delta(second)
             xdot = xdelta/self.time_interval
             ydot = ydelta/self.time_interval
             thetadot = thetadelta/self.time_interval
-            psidot = psidelta / self.time_interval
             for i in arange(0, self.time_interval * self._fps):
                 xdelta = xdot * (1/self._fps)
                 ydelta = ydot * (1/self._fps)
                 thetadelta = thetadot * (1/self._fps)
-                psidelta = psidot * (1/self._fps)
-                inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, psidelta, exact=True)
+                inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, exact=True)
                 full_path.append(inbetween_state)
             full_path.append(second)
             start = second
             if len(path) == 0:
                 break
             second = path.pop(0)
-
+        
         for state in full_path:
             self._vehicle.state = state
             self.on_render()
@@ -184,8 +185,8 @@ class Game:
         first = drawn.pop(0)
         second  = drawn.pop(0)
         while True:
-            firstxy = (first.x*100, first.y*100)
-            secondxy = (second.x*100, second.y*100)
+            firstxy = (first.x*self.pixels_per_meter, first.y*self.pixels_per_meter)
+            secondxy = (second.x*self.pixels_per_meter, second.y*self.pixels_per_meter)
             pygame.draw.line(self._display_surface, color, firstxy, secondxy, width=3)
             first = second
             if len(drawn) == 0:

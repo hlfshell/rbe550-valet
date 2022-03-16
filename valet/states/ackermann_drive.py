@@ -28,60 +28,27 @@ class AckermannDriveState(State):
         self.theta = self.theta % (2*pi)
         self.psi = self.psi  % (2*pi)
 
-    @classmethod
-    def get_transitions_states(self, start : AckermannDriveState, end: AckermannDriveState, time_increment : float, num_states : int) -> List[AckermannDriveState]:
-        L = 0.9
-        # Protections
-        start = start.clone()
-        end = end.clone()
-
-        # Solve for v first
-        xdelta = end.x - start.x
-        xdot = xdelta / time_increment
-
-        if cos(end.theta) == 0:
-            v = xdot
-        else:
-            v = xdot / cos(end.theta)
-        timedelta = time_increment / num_states
-        thetadot = (v/L) * tan(end.psi)
-        thetadelta = thetadot * timedelta
-
-        states = [start]
-        current = start
-        for _ in range(0, num_states-1):
-            theta = current.theta + thetadelta
-            xdot = v*cos(theta)
-            ydot = v*sin(theta)
-            xdelta = xdot * timedelta
-            ydelta = ydot * timedelta
-        
-            state = current.delta(xdelta, ydelta, thetadelta, 0)
-            state.psi = end.psi
-            states.append(state)
-            current = state
-        
-        return states
+        # Ackermann rules
+        self.L = 2.8
+        self.max_velocity = 5
+        self.psi_max = radians(60)
 
     def get_neighbors(self, increment : float, time_increment : float) -> List[State]:
-        # Max speed chosen is 2 m/s, we'll allow
+        # Max speed chosen is 12 m/s, we'll allow
         # 50% speed in reverse
         # Ackermann steering we'll allow +/- 60
         # degree (1.0472 radians)
         # time_increment = 1
-        v_max = 2
-        # theta_max = radians(60)
-        theta_max = radians(60)
-        L = 0.9
-        theta_increment = radians(10)
+        v_max = self.max_velocity
+        psi_increment = radians(10)
 
         neighbors : List[AckermannDriveState] = []
 
         v_increment = 0.5
-        for v in arange(-v_max, v_max + v_increment, v_increment):
-        # for v in [-v_max, v_max]:
-            for psi in arange(-theta_max, theta_max + theta_increment, theta_increment):
-                thetadot = (v/L) * tan(psi)
+        # for v in arange(-v_max, self.psi_max + v_increment, v_increment):
+        for v in [-v_max, v_max]:
+            for psi in arange(-self.psi_max, self.psi_max + psi_increment, psi_increment):
+                thetadot = (v/self.L) * tan(psi)
                 thetadelta = thetadot * time_increment
                 thetadelta = thetadelta % (2*pi)
                 if thetadelta > pi:
@@ -93,7 +60,7 @@ class AckermannDriveState(State):
                 ydot = v * sin(theta)
                 ydelta = ydot * time_increment
 
-                state = self.delta(xdelta, ydelta, thetadelta, 0)
+                state = self.delta(xdelta, ydelta, thetadelta)
                 state.psi = psi
                 neighbors.append(state)
         
@@ -114,12 +81,11 @@ class AckermannDriveState(State):
             second = states.pop(0)
         pygame.display.update()
 
-    def delta(self, deltax : float, deltay : float, deltatheta : float, deltapsi : float, exact :  bool = False) -> AckermannDriveState:
+    def delta(self, deltax : float, deltay : float, deltatheta : float, exact :  bool = False) -> AckermannDriveState:
         x = self.x + deltax
         y = self.y + deltay
         theta = self.theta + deltatheta
-        psi = self.psi + deltapsi
-        return AckermannDriveState((x, y), theta, psi, exact=exact)
+        return AckermannDriveState((x, y), theta, self.psi, exact=exact)
 
     def get_delta(self, to: AckermannDriveState) -> Tuple[float, float, float]:
         xdelta = to.x - self.x
@@ -129,8 +95,7 @@ class AckermannDriveState(State):
         if abs(thetadelta) > pi:
             thetadelta = (2*pi) - abs(thetadelta)
 
-        psidelta = to.psi - self.psi
-        return (xdelta, ydelta, thetadelta, psidelta)
+        return (xdelta, ydelta, thetadelta)
 
     def transition_cost(self, to: State):
         # Steering / Theta penalty
@@ -152,7 +117,7 @@ class AckermannDriveState(State):
         theta = other.theta
         if theta == 0:
             theta = 0.001
-        L = 0.9
+
         xdelta = self.x - other.x
         xdot = xdelta / time_increment
         ydelta = self.y - other.y
@@ -162,19 +127,19 @@ class AckermannDriveState(State):
         else:
             v = ydot / sin(other.theta)
 
-        if v > 2 or v < -2:
+        if v > self.max_velocity or v < -self.max_velocity:
             return False
         
         if xdelta != 0:
-            psi = atan((thetadelta * L)/(xdelta/cos(theta)))
+            psi = atan((thetadelta * self.L)/(xdelta/cos(theta)))
         else:
-            psi = atan((thetadelta * L)/(ydelta/sin(theta)))
+            psi = atan((thetadelta * self.L)/(ydelta/sin(theta)))
         
         psi = psi % (2*pi)
-        if psi > pi:
-            psi = -1*((2*pi) - psi)
+        if abs(psi) > pi:
+            psi = -1*((2*pi) - abs(psi))
 
-        if psi >= radians(-60) and psi <= radians(60):
+        if psi >= -radians(self.psi_max) and psi <= radians(self.psi_max):
             return True
         else:
             return False
@@ -200,8 +165,8 @@ class AckermannDriveState(State):
         
         distance = self.distance_between(other)
         theta_distance = abs(self.theta - other.theta)
-        if theta_difference > pi:
-            theta_difference = (2*pi) - theta_difference
+        if theta_distance > pi:
+            theta_distance = (2*pi) - theta_distance
 
         return distance <= 0.25 and theta_distance < pi/8
 
@@ -214,7 +179,8 @@ class AckermannDriveState(State):
         # theta_difference = 0
         if theta_difference > pi:
             theta_difference = (2*pi) - theta_difference
-        return distance < 0.05 and theta_difference < 0.05
+        # return distance < 0.05 and theta_difference < 0.05
+        return distance < 0.5 and theta_difference < 0.05
 
     def __hash__(self) -> int:
         x = self.x

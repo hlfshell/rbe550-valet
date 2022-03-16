@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import math
 from valet.states.states import State
-from typing import Callable
+from typing import Callable, List
 import pygame
 
 
@@ -19,7 +19,7 @@ class Vehicle(ABC):
     @classmethod
     def draw_vehicle(self, display_surface : pygame.Surface, render : Callable) -> Vehicle:
         pass
-    
+
     @abstractmethod
     def clone(self) -> Vehicle:
         pass

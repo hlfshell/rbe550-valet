@@ -7,7 +7,7 @@ import pygame
 from math import degrees
 from typing import Callable
 
-SKID_DRIVE_SPRITE = "./valet/assets/robot.png"
+SKID_DRIVE_SPRITE = "./valet/assets/skid_robot.png"
 
 class SkidDrive(Vehicle, pygame.sprite.Sprite):
 

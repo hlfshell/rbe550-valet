@@ -7,7 +7,7 @@ import pygame
 from valet.vehicles.vehicle import Vehicle
 from valet.states.ackermann_drive import AckermannDriveState
 
-ACKERMAN_DRIVE_SPRITE = "./valet/assets/robot.png"
+ACKERMAN_DRIVE_SPRITE = "./valet/assets/ackermann_robot.png"
 
 class Ackermann(Vehicle, pygame.sprite.Sprite):
 
