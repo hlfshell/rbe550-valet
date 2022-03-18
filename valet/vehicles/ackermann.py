@@ -1,7 +1,7 @@
 from __future__ import annotations
 from math import degrees
 import math
-from typing import Tuple
+from typing import Callable, Tuple
 
 import pygame
 from valet.vehicles.vehicle import Vehicle

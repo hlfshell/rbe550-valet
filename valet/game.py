@@ -58,7 +58,7 @@ class Game:
 
         if self._vehicle is not None:
             self._vehicle.render()
-            self._display_surface.blit(self._vehicle.surface, self._vehicle.rect)
+            self._vehicle.blit(self._display_surface)
         
         pygame.display.update()
 

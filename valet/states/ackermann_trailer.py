@@ -1,32 +1,36 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 from math import atan, cos, sin, sqrt, tan, atan, radians, pi
 
 from numpy import arange
 import pygame
 from valet.states.states import State
 
-class AckermannDriveState(State):
+class AckermannTrailerState(State):
 
     def __init__(
         self,
         xy: Tuple[float, float],
         theta: float,
         psi: float,
+        trailer_theta: float,
         exact=False
     ):
         self.x = xy[0]
         self.y = xy[1]
         self.theta = theta
         self.psi = psi
+        self.trailer_theta = trailer_theta
         if not exact:
-            x, y, theta, psi = self.get_rounded()
+            x, y, theta, psi, trailer_theta = self.get_rounded()
             self.x = x
             self.y = y
             self.theta = theta
             self.psi = psi
+            self.trailer_theta = trailer_theta
         self.theta = self.theta % (2*pi)
         self.psi = self.psi  % (2*pi)
+        self.trailer_theta = self.trailer_theta % (2*pi)
 
         # Ackermann rules
         self.L = 2.8
@@ -42,7 +46,7 @@ class AckermannDriveState(State):
         v_max = self.max_velocity
         psi_increment = radians(10)
 
-        neighbors : List[AckermannDriveState] = []
+        neighbors : List[AckermannTrailerState] = []
 
         v_increment = 0.5
         # for v in arange(-v_max, self.psi_max + v_increment, v_increment):
@@ -67,8 +71,8 @@ class AckermannDriveState(State):
         return neighbors
 
     @classmethod
-    def draw_path(self, display : pygame.Surface, start : AckermannDriveState, end : AckermannDriveState, time_increment : float, pixels_per_meter : int):
-        states = AckermannDriveState.get_transitions_states(start, end, time_increment, 10)
+    def draw_path(self, display : pygame.Surface, start : AckermannTrailerState, end : AckermannTrailerState, time_increment : float, pixels_per_meter : int):
+        states = AckermannTrailerState.get_transitions_states(start, end, time_increment, 10, 0)
         first = states.pop(0)
         second  = states.pop(0)
         while True:
@@ -81,13 +85,13 @@ class AckermannDriveState(State):
             second = states.pop(0)
         pygame.display.update()
 
-    def delta(self, deltax : float, deltay : float, deltatheta : float, exact :  bool = False) -> AckermannDriveState:
+    def delta(self, deltax : float, deltay : float, deltatheta : float, exact :  bool = False) -> AckermannTrailerState:
         x = self.x + deltax
         y = self.y + deltay
         theta = self.theta + deltatheta
-        return AckermannDriveState((x, y), theta, self.psi, exact=exact)
+        return AckermannTrailerState((x, y), theta, self.psi, exact=exact)
 
-    def get_delta(self, to: AckermannDriveState) -> Tuple[float, float, float]:
+    def get_delta(self, to: AckermannTrailerState) -> Tuple[float, float, float]:
         xdelta = to.x - self.x
         ydelta = to.y - self.y
         thetadelta = to.theta - self.theta
@@ -112,7 +116,7 @@ class AckermannDriveState(State):
     def distance_between(self, other : State) -> float:
         return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
 
-    def connects(self, other : AckermannDriveState, time_increment : float) -> bool:
+    def connects(self, other : AckermannTrailerState, time_increment : float) -> bool:
         thetadelta = self.theta - other.theta
         theta = other.theta
         if theta == 0:
@@ -145,7 +149,7 @@ class AckermannDriveState(State):
             return False
 
     def clone(self) -> State:
-        return AckermannDriveState(
+        return AckermannTrailerState(
             (self.x, self.y),
             self.theta,
             self.psi,
@@ -157,9 +161,10 @@ class AckermannDriveState(State):
         y = round(self.y, 2)
         theta = round(self.theta, 1)
         psi = round(self.psi, 1)
-        return (x, y, theta, psi)
+        trailer_theta = round(self.trailer_theta, 1)
+        return (x, y, theta, y, trailer_theta)
 
-    def goal_check(self, other:AckermannDriveState) -> bool:
+    def goal_check(self, other:AckermannTrailerState) -> bool:
         if other is None:
             return False
         
@@ -171,7 +176,7 @@ class AckermannDriveState(State):
         return distance <= 0.25 and theta_distance < pi/8
 
 
-    def __eq__(self, other: AckermannDriveState) -> bool:
+    def __eq__(self, other: AckermannTrailerState) -> bool:
         if other is None:
             return False
         distance = self.distance_between(other)
@@ -189,9 +194,9 @@ class AckermannDriveState(State):
         return hash((x, y, theta))
     
     def __str__(self) -> str:
-        return f"x: {self.x} y: {self.y} theta: {self.theta} psi: {self.theta}"
+        return f"x: {self.x} y: {self.y} theta: {self.theta} psi: {self.theta} trailer theta: {self.trailer_theta}"
 
-    def __lt__(self, other: AckermannDriveState) -> str:
+    def __lt__(self, other: AckermannTrailerState) -> str:
         x, y, theta, psi = self.get_rounded()
         ox, oy, otheta, opsi = other.get_rounded()
         return (x, y, theta, psi) < (ox, oy, otheta, opsi)
