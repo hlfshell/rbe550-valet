@@ -32,6 +32,9 @@ class Ackermann(Vehicle, pygame.sprite.Sprite):
         xy = (self.state.x*self.pixels_to_meter, self.state.y*self.pixels_to_meter)
         self.rect = self.surface.get_rect(center=xy)
     
+    def blit(self, surface : pygame.Surface):
+        surface.blit(self.surface, self.rect)
+
     def draw_vehicle(self, display_surface: pygame.Surface, render: Callable) -> Vehicle:
         position : Tuple[int, int] = None
         orientation : float = None

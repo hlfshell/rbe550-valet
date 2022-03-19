@@ -34,11 +34,6 @@ class AckermannDriveState(State):
         self.psi_max = radians(60)
 
     def get_neighbors(self, increment : float, time_increment : float) -> List[State]:
-        # Max speed chosen is 12 m/s, we'll allow
-        # 50% speed in reverse
-        # Ackermann steering we'll allow +/- 60
-        # degree (1.0472 radians)
-        # time_increment = 1
         v_max = self.max_velocity
         psi_increment = radians(10)
 

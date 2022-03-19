@@ -152,21 +152,51 @@ class Game:
         sleep(1)
         self.animate_path(path)
 
+    # def animate_path(self, draw_path: List[State]):
+    #     path = draw_path.copy()
+    #     start = path.pop(0)
+    #     full_path : List[State] = [start]
+    #     second = path.pop(0)
+    #     while True:
+    #         xdelta, ydelta, thetadelta = start.get_delta(second)
+    #         xdot = xdelta/self.time_interval
+    #         ydot = ydelta/self.time_interval
+    #         thetadot = thetadelta/self.time_interval
+    #         for i in arange(0, self.time_interval * self._fps):
+    #             xdelta = xdot * (1/self._fps)
+    #             ydelta = ydot * (1/self._fps)
+    #             thetadelta = thetadot * (1/self._fps)
+    #             inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, exact=True)
+    #             full_path.append(inbetween_state)
+    #         full_path.append(second)
+    #         start = second
+    #         if len(path) == 0:
+    #             break
+    #         second = path.pop(0)
+        
+    #     for state in full_path:
+    #         self._vehicle.state = state
+    #         self.on_render()
+    #         pygame.display.update()
+    #         self._frame_per_sec.tick(self._fps)
+
     def animate_path(self, draw_path: List[State]):
         path = draw_path.copy()
         start = path.pop(0)
         full_path : List[State] = [start]
         second = path.pop(0)
         while True:
-            xdelta, ydelta, thetadelta = start.get_delta(second)
+            xdelta, ydelta, thetadelta, trailer_thetadelta = start.get_delta(second)
             xdot = xdelta/self.time_interval
             ydot = ydelta/self.time_interval
             thetadot = thetadelta/self.time_interval
+            trailer_thetadot = trailer_thetadelta/self.time_interval
             for i in arange(0, self.time_interval * self._fps):
                 xdelta = xdot * (1/self._fps)
                 ydelta = ydot * (1/self._fps)
                 thetadelta = thetadot * (1/self._fps)
-                inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, exact=True)
+                trailer_thetadelta = trailer_thetadot * (1/self._fps)
+                inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, delta_trailer_theta=trailer_thetadelta, exact=True)
                 full_path.append(inbetween_state)
             full_path.append(second)
             start = second
