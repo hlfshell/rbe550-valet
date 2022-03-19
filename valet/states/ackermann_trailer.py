@@ -33,7 +33,7 @@ class AckermannTrailerState(State):
         self.trailer_theta = self.trailer_theta % (2*pi)
 
         # Ackermann rules
-        self.L = 2.8
+        self.L = 3
         self.max_velocity = 5
         self.psi_max = radians(60)
 
@@ -142,18 +142,18 @@ class AckermannTrailerState(State):
     def distance_between(self, other : State) -> float:
         return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
 
-    def connects(self, other : AckermannTrailerState, time_increment : float) -> bool:
+    def connects(self, other : AckermannTrailerState, time_increment : float) -> AckermannTrailerState:
         distance = self.distance_between(other)
         max_distance = self.max_velocity * time_increment
         if distance > max_distance:
-            return False
+            return None
         
         thetadelta = self.theta - other.theta
 
         thetadotmax = (self.max_velocity/self.L) * tan(self.psi_max)
         thetadeltamax = abs(thetadotmax) * time_increment
         if abs(thetadelta) > thetadeltamax:
-            return False
+            return None
 
         theta = other.theta
         if theta == 0:
@@ -169,7 +169,7 @@ class AckermannTrailerState(State):
             v = ydot / sin(other.theta)
 
         if abs(v) > self.max_velocity:
-            return False
+            return None
         
         if xdelta != 0:
             psi = atan((thetadelta * self.L)/(xdelta/cos(theta)))
@@ -181,8 +181,7 @@ class AckermannTrailerState(State):
             psi = -1*((2*pi) - abs(psi))
 
         if psi > abs(self.psi_max):
-            print("psi is bad", psi, degrees(psi))
-            return False
+            return None
         
         # Check the trailer
         trailer_theta_dot = (v/5)*sin(theta-self.trailer_theta)
@@ -190,10 +189,11 @@ class AckermannTrailerState(State):
         trailer_theta = self.trailer_theta + trailer_theta_delta
         theta_difference = abs(theta - trailer_theta)
         if theta_difference > (pi/4):
-            return False
+            return None
         
-        print("TRIGGERED")
-        return True
+        result = other.clone()
+        result.trailer_theta = trailer_theta
+        return result
 
     def clone(self) -> State:
         return AckermannTrailerState(

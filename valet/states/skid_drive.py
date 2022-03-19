@@ -56,12 +56,12 @@ class SkidDriveState(State):
     def distance_between(self, other : SkidDriveState) -> float:
         return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
 
-    def connects(self, other : SkidDriveState, time_increment : float ) -> bool:
+    def connects(self, other : SkidDriveState, time_increment : float ) -> SkidDriveState:
         # First, is it within a distance to even be possible?
         max_distance = 2 * time_increment # 2m/s
         
         if self.distance_between(other) > max_distance:
-            return False
+            return None
 
         # Now that we know it's possible, calculate the UL/UR needed
         # to get to that spot. If they are within our acceptable range
@@ -79,9 +79,9 @@ class SkidDriveState(State):
         Ur = ((thetadot*L)/r) + Ul
         
         if Ul >= -20 and Ul <= 20 and Ur >= -20 and Ur <= 20:
-            return True
+            return other
         else:
-            return False
+            return None
 
     def delta(self, deltax: float, deltay: float, deltatheta: float, exact=False) -> SkidDriveState:
         x = self.x + deltax

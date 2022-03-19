@@ -61,9 +61,10 @@ class StateLattice():
         current = self.queue.pop()
 
         # Short hop check
-        if current.connects(self.goal, time_increment=self.time_increment):
-            self.parents[self.goal] = current
-            current = self.goal
+        connected = current.connects(self.goal, time_increment=self.time_increment)
+        if connected is not None:
+            self.parents[connected] = current
+            current = connected
 
         # If our current state is our goal state, we've hit our
         # goal, we're done! Let's build the path...

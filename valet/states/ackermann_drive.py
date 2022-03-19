@@ -107,18 +107,18 @@ class AckermannDriveState(State):
     def distance_between(self, other : State) -> float:
         return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
 
-    def connects(self, other : AckermannDriveState, time_increment : float) -> bool:
+    def connects(self, other : AckermannDriveState, time_increment : float) -> AckermannDriveState:
         distance = self.distance_between(other)
         max_distance = self.max_velocity * time_increment
         if distance > max_distance:
-            return False
+            return None
 
         thetadelta = self.theta - other.theta
 
         thetadotmax = (self.max_velocity/self.L) * tan(self.psi_max)
         thetadeltamax = abs(thetadotmax) * time_increment
         if abs(thetadelta) > thetadeltamax:
-            return False
+            return None
         
         theta = other.theta
         if theta == 0:
@@ -134,7 +134,7 @@ class AckermannDriveState(State):
             v = ydot / sin(other.theta)
 
         if abs(v) > self.max_velocity:
-            return False
+            return None
         
         if xdelta != 0:
             psi = atan((thetadelta * self.L)/(xdelta/cos(theta)))
@@ -146,9 +146,9 @@ class AckermannDriveState(State):
             psi = -1*((2*pi) - abs(psi))
 
         if abs(psi) > self.psi_max:
-            return False
+            return None
 
-        return True
+        return other
 
     def clone(self) -> State:
         return AckermannDriveState(
