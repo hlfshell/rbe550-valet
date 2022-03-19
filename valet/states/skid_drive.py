@@ -93,6 +93,12 @@ class SkidDriveState(State):
         xdelta = to.x - self.x
         ydelta = to.y - self.y
         thetadelta = to.theta - self.theta
+
+        if thetadelta > pi:
+            thetadelta = -((2*pi) - thetadelta)
+        elif thetadelta < -pi:
+            thetadelta = ((2*pi) + thetadelta)
+
         return (xdelta, ydelta, thetadelta)
 
     def transition_cost(self, to: SkidDriveState) -> float:
