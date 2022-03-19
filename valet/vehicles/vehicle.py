@@ -2,6 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 import math
+from valet.obstacle import Obstacle
 from valet.states.states import State
 from typing import Callable, List
 import pygame
@@ -22,4 +23,8 @@ class Vehicle(ABC):
 
     @abstractmethod
     def clone(self) -> Vehicle:
+        pass
+
+    @abstractmethod
+    def collision_check(self, obstacle : Obstacle) -> bool:
         pass

@@ -118,17 +118,8 @@ class Game:
         mask = None
 
         for obstacle in self.obstacles:
-            # First we test the rects - if they overlap,
-            # we can then spend the time doing a finer degree
-            # of checking 
-            if obstacle.rect.colliderect(vehicle.rect):
-                if mask == None:
-                    mask = pygame.mask.from_surface(vehicle.surface)
-                offset =  (vehicle.rect[0]-obstacle.rect[0], vehicle.rect[1]-obstacle.rect[1])
-                obstacle_mask = pygame.mask.from_surface(obstacle.surface)
-                collisions = obstacle_mask.overlap(mask, offset)
-                if collisions is not None and len(collisions) > 0:
-                    return True
+            if vehicle.collision_check(obstacle):
+                return True
 
         return False
 
@@ -152,51 +143,32 @@ class Game:
         sleep(1)
         self.animate_path(path)
 
-    # def animate_path(self, draw_path: List[State]):
-    #     path = draw_path.copy()
-    #     start = path.pop(0)
-    #     full_path : List[State] = [start]
-    #     second = path.pop(0)
-    #     while True:
-    #         xdelta, ydelta, thetadelta = start.get_delta(second)
-    #         xdot = xdelta/self.time_interval
-    #         ydot = ydelta/self.time_interval
-    #         thetadot = thetadelta/self.time_interval
-    #         for i in arange(0, self.time_interval * self._fps):
-    #             xdelta = xdot * (1/self._fps)
-    #             ydelta = ydot * (1/self._fps)
-    #             thetadelta = thetadot * (1/self._fps)
-    #             inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, exact=True)
-    #             full_path.append(inbetween_state)
-    #         full_path.append(second)
-    #         start = second
-    #         if len(path) == 0:
-    #             break
-    #         second = path.pop(0)
-        
-    #     for state in full_path:
-    #         self._vehicle.state = state
-    #         self.on_render()
-    #         pygame.display.update()
-    #         self._frame_per_sec.tick(self._fps)
-
     def animate_path(self, draw_path: List[State]):
         path = draw_path.copy()
         start = path.pop(0)
         full_path : List[State] = [start]
         second = path.pop(0)
         while True:
-            xdelta, ydelta, thetadelta, trailer_thetadelta = start.get_delta(second)
+            deltas = start.get_delta(second)
+            xdelta = deltas[0]
+            ydelta = deltas[1]
+            thetadelta = deltas[2]
+            if len(deltas) >= 4:
+                trailer_thetadelta = deltas[3]
             xdot = xdelta/self.time_interval
             ydot = ydelta/self.time_interval
             thetadot = thetadelta/self.time_interval
-            trailer_thetadot = trailer_thetadelta/self.time_interval
+            if len(deltas) >= 4:
+                trailer_thetadot = trailer_thetadelta/self.time_interval
             for i in arange(0, self.time_interval * self._fps):
                 xdelta = xdot * (1/self._fps)
                 ydelta = ydot * (1/self._fps)
                 thetadelta = thetadot * (1/self._fps)
-                trailer_thetadelta = trailer_thetadot * (1/self._fps)
-                inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, delta_trailer_theta=trailer_thetadelta, exact=True)
+                if len(deltas) >= 4:
+                    trailer_thetadelta = trailer_thetadot * (1/self._fps)
+                    inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, delta_trailer_theta=trailer_thetadelta, exact=True)
+                else:
+                    inbetween_state = full_path[-1].delta(xdelta, ydelta, thetadelta, exact=True)
                 full_path.append(inbetween_state)
             full_path.append(second)
             start = second

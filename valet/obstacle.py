@@ -17,6 +17,7 @@ class Obstacle():
         self.points = [(point[0]-min_w, point[1]-min_h) for point in points]
         self.center =  (round(max_w - (self.w/2)), round(max_h - (self.h/2)))
         self.surface = pygame.Surface((self.w, self.h))
+        self.mask = pygame.mask.from_surface(self.surface)
         # print(">>", w, h)
         # self.surface = pygame.Surface((w, h))
         # self.render()

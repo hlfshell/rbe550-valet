@@ -1,9 +1,11 @@
 from __future__ import annotations
 from math import degrees
 import math
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
+from numpy import arange
 
 import pygame
+from valet.obstacle import Obstacle
 from valet.vehicles.vehicle import Vehicle
 from valet.states.ackermann_drive import AckermannDriveState
 
@@ -31,16 +33,29 @@ class Ackermann(Vehicle, pygame.sprite.Sprite):
         self.surface = pygame.transform.rotate(self.image, -1*degrees(self.state.theta))
         xy = (self.state.x*self.pixels_to_meter, self.state.y*self.pixels_to_meter)
         self.rect = self.surface.get_rect(center=xy)
+        self.mask = pygame.mask.from_surface(self.surface)
     
     def blit(self, surface : pygame.Surface):
         surface.blit(self.surface, self.rect)
+
+    def collision_check(self, obstacle : Obstacle):
+        # First we test the rects - if they overlap,
+        # we can then spend the time doing a finer degree
+        # of checking 
+        if obstacle.rect.colliderect(self.rect):
+            offset = (self.rect[0] - obstacle.rect[0], self.rect[1] - obstacle.rect[1])
+            obstacle_mask = pygame.mask.from_surface(obstacle.surface)
+            collisions = obstacle_mask.overlap(self.mask, offset)
+            if collisions is not None and len(collisions) > 0:
+                return True
+
+        return False
 
     def draw_vehicle(self, display_surface: pygame.Surface, render: Callable) -> Vehicle:
         position : Tuple[int, int] = None
         orientation : float = None
         while orientation is None:
             render()
-            # self._frame_per_sec.tick(self._fps)
             if position is not None:
                 pygame.draw.line(display_surface, (255, 0, 0), position, pygame.mouse.get_pos(), width=3)
                 pygame.display.update()
@@ -65,7 +80,7 @@ class Ackermann(Vehicle, pygame.sprite.Sprite):
         theta = math.radians(-1*orientation)
 
         self.state = AckermannDriveState((x, y), theta, 0.0)
-    
+
     def clone(self) -> Ackermann:
         state = self.state.clone()
         return Ackermann(state, self.pixels_to_meter)

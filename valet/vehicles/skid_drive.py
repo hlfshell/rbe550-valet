@@ -1,6 +1,9 @@
 from __future__ import annotations
 import math
-from typing import Tuple
+from typing import List, Tuple
+
+from numpy import arange
+from valet.obstacle import Obstacle
 from valet.states.skid_drive import SkidDriveState
 from valet.vehicles.vehicle import Vehicle
 import pygame
@@ -32,7 +35,23 @@ class SkidDrive(Vehicle, pygame.sprite.Sprite):
         self.surface = pygame.transform.rotate(self.image, -1*degrees(self.state.theta))
         xy = (self.state.x*self.pixels_to_meter, self.state.y*self.pixels_to_meter)
         self.rect = self.surface.get_rect(center=xy)
-    
+        self.mask = pygame.mask.from_surface(self.surface)
+
+    def blit(self, surface : pygame.Surface):
+        surface.blit(self.surface, self.rect)
+
+    def collision_check(self, obstacle: Obstacle) -> bool:
+        # First we test the rects - if they overlap,
+        # we can then spend the time doing a finer degree
+        # of checking 
+        if obstacle.rect.colliderect(self.rect):
+            offset = (self.rect[0] - obstacle.rect[0], self.rect[1] - obstacle.rect[1])
+            collisions = obstacle.mask.overlap(self.mask, offset)
+            if collisions is not None and len(collisions) > 0:
+                return True
+
+        return False
+
     def draw_vehicle(self, display_surface: pygame.Surface, render: Callable) -> Vehicle:
         position : Tuple[int, int] = None
         orientation : float = None

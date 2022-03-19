@@ -143,7 +143,18 @@ class AckermannTrailerState(State):
         return sqrt((self.x-other.x)**2 + (self.y-other.y)**2)
 
     def connects(self, other : AckermannTrailerState, time_increment : float) -> bool:
+        distance = self.distance_between(other)
+        max_distance = self.max_velocity * time_increment
+        if distance > max_distance:
+            return False
+        
         thetadelta = self.theta - other.theta
+
+        thetadotmax = (self.max_velocity/self.L) * tan(self.psi_max)
+        thetadeltamax = abs(thetadotmax) * time_increment
+        if abs(thetadelta) > thetadeltamax:
+            return False
+
         theta = other.theta
         if theta == 0:
             theta = 0.001
@@ -157,7 +168,7 @@ class AckermannTrailerState(State):
         else:
             v = ydot / sin(other.theta)
 
-        if v > self.max_velocity or v < -self.max_velocity:
+        if abs(v) > self.max_velocity:
             return False
         
         if xdelta != 0:
@@ -169,12 +180,20 @@ class AckermannTrailerState(State):
         if abs(psi) > pi:
             psi = -1*((2*pi) - abs(psi))
 
-        if psi >= abs(radians(self.psi_max)):
-            print("TRIGGERED")
-            return True
-        else:
+        if psi > abs(self.psi_max):
             print("psi is bad", psi, degrees(psi))
             return False
+        
+        # Check the trailer
+        trailer_theta_dot = (v/5)*sin(theta-self.trailer_theta)
+        trailer_theta_delta = trailer_theta_dot * time_increment
+        trailer_theta = self.trailer_theta + trailer_theta_delta
+        theta_difference = abs(theta - trailer_theta)
+        if theta_difference > (pi/4):
+            return False
+        
+        print("TRIGGERED")
+        return True
 
     def clone(self) -> State:
         return AckermannTrailerState(

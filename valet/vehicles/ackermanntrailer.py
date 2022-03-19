@@ -1,10 +1,11 @@
 from __future__ import annotations
 from math import degrees
 import math
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
 import numpy as np
 
 import pygame
+from valet.obstacle import Obstacle
 from valet.vehicles.vehicle import Vehicle
 from valet.states.ackermann_trailer import AckermannTrailerState
 
@@ -51,12 +52,32 @@ class AckermannTrailer(Vehicle, pygame.sprite.Sprite):
         trailer_angle = -1*degrees(trailer_theta) #+ (math.pi/2)
         self.trailer_surface = pygame.transform.rotate(self.trailer_image, trailer_angle)
         self.trailer_rect = self.trailer_surface.get_rect(center=self.trailer_xy)
+        
+        self.mask = pygame.mask.from_surface(self.surface)
+        self.trailer_mask = pygame.mask.from_surface(self.trailer_surface)
 
     def blit(self, surface : pygame.Surface):
         surface.blit(self.surface, self.rect)
         surface.blit(self.trailer_surface, self.trailer_rect)
         pygame.draw.line(surface, (0, 0, 0), self.xy, self.trailer_xy, width=3)
-    
+
+    def collision_check(self, obstacle: Obstacle) -> bool:
+        # First we test the rects - if they overlap,
+        # we can then spend the time doing a finer degree
+        # of checking 
+        if obstacle.rect.colliderect(self.rect):
+            offset = (self.rect[0] - obstacle.rect[0], self.rect[1] - obstacle.rect[1])
+            collisions = obstacle.mask.overlap(self.mask, offset)
+            if collisions is not None and len(collisions) > 0:
+                return True
+        if obstacle.rect.colliderect(self.trailer_rect):
+            offset = (self.trailer_rect[0] - obstacle.rect[0], self.trailer_rect[1] - obstacle.rect[1])
+            collisions = obstacle.mask.overlap(self.trailer_mask, offset)
+            if collisions is not None and len(collisions) > 0:
+                return True
+
+        return False
+
     def draw_vehicle(self, display_surface: pygame.Surface, render: Callable) -> Vehicle:
         position : Tuple[int, int] = None
         orientation : float = None
@@ -90,37 +111,6 @@ class AckermannTrailer(Vehicle, pygame.sprite.Sprite):
 
         self.state = AckermannTrailerState((x, y), theta, 0.0, theta)
 
-        print("STATE", self.state)
-
-        # tmp_vehicle = AckermannTrailer(self.state, self.pixels_to_meter)
-        # while True:
-        #     display_surface.fill((255,255,255)) # white
-        #     position = pygame.mouse.get_pos()
-        #     pygame.draw.line(display_surface, (255, 0, 0), origin, pygame.mouse.get_pos(), width=3)
-        #     # trailer_orientation = -1 * math.atan2(point[0]-position[0], point[1]-position[1])
-        #     # trailer_orientation = math.atan2(origin[0]-position[0], origin[1]-position[1]) #- (math.pi/2)
-        #     trailer_orientation = math.atan2(position[0]-origin[0], position[1]-origin[1]) - (math.pi/2)
-        #     print("orientation", trailer_orientation, math.degrees(trailer_orientation), 180 - math.degrees(trailer_orientation))
-        #     self.state.trailer_theta = trailer_orientation - self.state.theta
-        #     limit_check = self.state.trailer_theta + (math.pi/2)
-        #     # if limit_check > self.max_trailer_theta:
-        #     #     self.state.trailer_theta = self.max_trailer_theta - (math.pi/2)
-        #     # elif limit_check < -self.max_trailer_theta:
-        #     #     self.state.trailer_theta = -(self.max_trailer_theta + (math.pi/2))
-        #     # thetaz = (self.state.trailer_theta+(math.pi/2))# % (math.pi/2)
-        #     self.state.trailer_theta -= math.pi/2
-        #     thetaz = self.state.trailer_theta + (math.pi/2)
-        #     # print(f"trailer_or: {math.degrees(trailer_orientation)} trailer: {math.degrees(self.state.trailer_theta)} tz: {math.degrees(thetaz)}")
-        #     for event in pygame.event.get():
-        #         mousebuttondown = event.type == pygame.MOUSEBUTTONDOWN
-        #         if mousebuttondown and left and tmp_vehicle is not None:
-        #             return tmp_vehicle
-        #     # display_surface.fill((255,255,255)) # white
-        #     tmp_vehicle = AckermannTrailer(self.state, pixels_to_meter=self.pixels_to_meter)
-        #     tmp_vehicle.render()
-        #     tmp_vehicle.blit(display_surface)
-        #     pygame.display.update()
-    
     def clone(self) -> AckermannTrailer:
         state = self.state.clone()
         return AckermannTrailer(state, self.pixels_to_meter)
