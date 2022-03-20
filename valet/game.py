@@ -210,11 +210,6 @@ class Game:
                 break
             second = drawn.pop(0)
         pygame.display.update()
-    
-    def heuristic_two(self, target : State, goal : State):
-        distance = target.distance_between(goal)
-        theta_difference = abs((goal.theta-target.theta)%(2*math.pi))
-        return 2*distance + 4*theta_difference
 
     def drive(self):
         while True:
