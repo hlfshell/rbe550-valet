@@ -63,8 +63,10 @@ class StateLattice():
         # Short hop check
         connected = current.connects(self.goal, time_increment=self.time_increment)
         if connected is not None:
-            self.parents[connected] = current
-            current = connected
+            shadow = self.vehicle_type(connected, self.pixels_per_meter)
+            if not self.collision_detection(shadow):
+                self.parents[connected] = current
+                current = connected
 
         # If our current state is our goal state, we've hit our
         # goal, we're done! Let's build the path...

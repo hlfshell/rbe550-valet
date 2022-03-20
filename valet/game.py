@@ -2,6 +2,7 @@ from time import sleep
 from typing import Callable, List, Tuple
 from numpy import arange
 import pygame
+import pickle
 from pygame.locals import K_w, K_a, K_s, K_d
 import math
 from valet.obstacle import Obstacle
@@ -90,6 +91,20 @@ class Game:
                         return []
                     else:
                         return points
+
+    def save_map(self, location : str):
+        map_file = open(location, "wb")
+        obstacles = [x.original_points for x in self.obstacles]
+        pickle.dump(obstacles, map_file)
+        map_file.close()
+
+    def load_map(self, location : str):
+        map_file = open(location, 'rb')
+        obstacles = pickle.load(map_file)
+        map_file.close()
+
+        for obstacle in obstacles:
+            self.obstacles.append(Obstacle(obstacle))
 
     def set_vehicle_spawn(self, vehicle : Vehicle):
         vehicle.draw_vehicle(self._display_surface, self.on_render)

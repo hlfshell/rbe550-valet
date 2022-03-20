@@ -7,8 +7,8 @@ from valet.vehicles.ackermann import Ackermann
 game = Game((800, 800), 35, Ackermann)
 game.init()
 vehicle = Ackermann(AckermannDriveState((0,0), 0, 0), 35)
+game.load_map("./maps/ackermann.map")
 game.set_vehicle_spawn(vehicle)
-game.draw_obstacles()
 
 while True:
     game.set_goal(vehicle)
