@@ -1,5 +1,7 @@
 # RBE550 Valet Project
 
+<img src="videos/trailer.gif"/>
+
 This is the RBE550 Valet homework assignment, completed for the Spring 2022 term.
 
 The `doc` section contains the assignment writeup. The `videos` folder contains examples of each of these robots working.
@@ -14,3 +16,6 @@ The following scripts are your entrypoints:
 Each robot script will wait for you to place the initial pose of the robot. Every pose placement there after will be your new goal pose.
 
 To change maps, change the loaded map in the associated script for your chosen robot.
+
+<img src="videos/skid.gif" width=300/>
+<img src="videos/ackermann.gif" width=300/>
